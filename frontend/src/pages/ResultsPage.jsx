@@ -19,8 +19,9 @@ import ExportButton       from '../components/ExportButton'
 
 const POLL_INTERVAL = 3000
 
-export default function ResultsPage() {
-  const { id }        = useParams()
+export default function ResultsPage({ searchId, isEmbedded = false }) {
+  const params        = useParams()
+  const id            = searchId || params.id
   const navigate      = useNavigate()
   const { showToast } = useToast()
 
@@ -133,13 +134,15 @@ export default function ResultsPage() {
   const isFailed   = search?.status === 'failed'
 
   return (
-    <div className="page-container">
+    <div className={isEmbedded ? "" : "page-container"}>
       {/* Header */}
       <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/search')} style={{ marginBottom: '10px', color: 'var(--text-secondary)' }}>
-            <ArrowLeft size={14} /> Back to search
-          </button>
+          {!isEmbedded && (
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/search')} style={{ marginBottom: '10px', color: 'var(--text-secondary)' }}>
+              <ArrowLeft size={14} /> Back to search
+            </button>
+          )}
           <h1 className="page-title">
             {loadingSearch
               ? <span className="skeleton" style={{ width: '220px', display: 'inline-block', height: '26px' }} />

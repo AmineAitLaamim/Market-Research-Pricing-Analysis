@@ -123,7 +123,7 @@ export default function ItemPage() {
             </div>
           </div>
           
-          {analysis && (
+          {item.analysis && (
             <div className={`card ${isAnomaly ? 'anomaly-card' : ''}`} style={{ padding: '24px', border: isAnomaly ? '1px solid var(--color-danger)' : '1px solid var(--border)', background: isAnomaly ? '#fff5f5' : 'var(--surface-sunken)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <Info size={16} color={isAnomaly ? 'var(--color-danger)' : 'var(--text-secondary)'} />
