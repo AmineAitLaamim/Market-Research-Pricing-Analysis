@@ -47,7 +47,7 @@ def run_search_pipeline(self, search_id):
             rates = FALLBACK_RATES.copy()
 
         # Step 3: scrape all requested platforms
-        dispatch_result = scrape_all(search.query, search.platforms)
+        dispatch_result = scrape_all(search.query, search.platforms, search_id)
 
         # Handle both dict {"results": [...]} and direct list returns
         if isinstance(dispatch_result, dict):
@@ -91,6 +91,7 @@ def run_search_pipeline(self, search_id):
             )
 
             # Run mining pipeline on saved prices
+            notify_ws(search_id, "mining", {})
             pipeline_result = run_mining_pipeline(saved_raw_prices)
 
             # Bulk create analysis results from pipeline output
@@ -115,7 +116,7 @@ def run_search_pipeline(self, search_id):
         search.save()
 
         # WebSocket notification sent AFTER atomic block closes
-        notify_ws(search_id, "completed", {})
+        notify_ws(search_id, "done", {})
 
     except Exception as exc:
         logger.exception("Pipeline failed for search %s", search_id)

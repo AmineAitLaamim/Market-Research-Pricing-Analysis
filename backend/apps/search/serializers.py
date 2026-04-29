@@ -54,3 +54,30 @@ class SearchStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Search
         fields = ("id", "status", "created_at")
+
+from .models import RawPrice, AnalysisResult, AssociationRule
+
+class AnalysisResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnalysisResult
+        fields = ("cluster_kmeans", "cluster_dbscan", "is_anomaly", "deal_score", "pca_x", "pca_y")
+
+class RawPriceSerializer(serializers.ModelSerializer):
+    analysis = serializers.SerializerMethodField()
+    price_mad = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RawPrice
+        fields = ("id", "platform", "title", "price", "currency", "exchange_rate", "price_mad", "url", "seller_rating", "condition", "analysis")
+
+    def get_analysis(self, obj):
+        res = obj.analysis_results.first()
+        return AnalysisResultSerializer(res).data if res else None
+
+    def get_price_mad(self, obj):
+        return float(obj.price) * obj.exchange_rate
+
+class AssociationRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssociationRule
+        fields = ("antecedent", "consequent", "support", "confidence", "lift")

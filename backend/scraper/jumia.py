@@ -80,13 +80,17 @@ def extract_jumia_results(html: str) -> list[dict[str, Any]]:
 def _extract_next_page_url(page) -> str | None:
     # Try multiple aria-labels for different site languages
     selector = 'a[aria-label="Next Page"], a[aria-label="Page suivante"]'
-    next_href = page.locator(selector).first.get_attribute("href")
-    if not next_href:
-        return None
-    return urljoin(BASE_URL, next_href)
+    try:
+        # Use a short timeout because if it's not there after cards load, it doesn't exist
+        next_href = page.locator(selector).first.get_attribute("href", timeout=2000)
+        if next_href:
+            return urljoin(BASE_URL, next_href)
+    except Exception:
+        pass
+    return None
 
 
-def scrape_jumia(query_or_url: str, browser) -> list[dict[str, Any]]:
+def scrape_jumia(query_or_url: str, browser, progress_callback=None) -> list[dict[str, Any]]:
     context = create_context(browser)
     page = context.new_page()
     results: list[dict[str, Any]] = []
@@ -98,7 +102,10 @@ def scrape_jumia(query_or_url: str, browser) -> list[dict[str, Any]]:
         else:
             next_url = SEARCH_URL.format(query=quote_plus(query_or_url))
 
-        for _ in range(MAX_PAGES):
+        for page_num in range(1, MAX_PAGES + 1):
+            if progress_callback:
+                progress_callback("jumia", len(results))
+            
             page.goto(next_url, wait_until="domcontentloaded")
             
             # Wait for either products or an empty state

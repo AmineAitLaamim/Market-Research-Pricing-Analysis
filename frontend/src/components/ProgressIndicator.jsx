@@ -9,7 +9,15 @@
  */
 export default function ProgressIndicator({ events = [], status = 'pending' }) {
   // Derive state from events
-  const scraped  = events.filter((e) => e.type === 'scraping')
+  const scrapingEvents = events.filter((e) => e.type === 'scraping')
+  
+  // Get latest count per platform
+  const latestScraped = Object.values(
+    scrapingEvents.reduce((acc, e) => {
+      if (e.platform) acc[e.platform] = e;
+      return acc;
+    }, {})
+  );
   const isMining = events.some((e) => e.type === 'mining')
   const isDone   = status === 'completed' || status === 'failed' || events.some((e) => e.type === 'done')
 
@@ -29,8 +37,8 @@ export default function ProgressIndicator({ events = [], status = 'pending' }) {
       state: scrapingState,
       icon: scrapingState === 'done' ? '✓' : scrapingState === 'active' ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : '🕷️',
       label: 'Scraping listings',
-      detail: scraped.length
-        ? scraped.map((e) => `${e.platform}: ${e.count ?? 0} items`).join(' · ')
+      detail: latestScraped.length
+        ? latestScraped.map((e) => `${e.platform}: ${e.count ?? 0} items`).join(' · ')
         : status === 'pending' ? 'Waiting to start…' : 'Collecting data…',
     },
     {

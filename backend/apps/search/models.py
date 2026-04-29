@@ -49,7 +49,7 @@ class RawPrice(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=10)
     exchange_rate = models.FloatField()
-    url = models.URLField()
+    url = models.URLField(max_length=2000)
     seller_rating = models.FloatField(
         null=True,
         blank=True,
