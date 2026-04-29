@@ -154,3 +154,8 @@ class SearchRulesView(generics.ListAPIView):
 
     def get_queryset(self):
         return AssociationRule.objects.filter(search_id=self.kwargs["pk"], search__user=self.request.user)
+
+class RawPriceDetailView(generics.RetrieveAPIView):
+    serializer_class = RawPriceSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    queryset = RawPrice.objects.all()

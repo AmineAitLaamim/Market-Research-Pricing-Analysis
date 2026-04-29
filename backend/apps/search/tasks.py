@@ -74,6 +74,7 @@ def run_search_pipeline(self, search_id):
                     currency=currency,
                     exchange_rate=rate,
                     url=item["url"],
+                    image_url=item.get("image_url"),
                     seller_rating=item.get("rating"),
                     condition=item.get("condition"),
                 )

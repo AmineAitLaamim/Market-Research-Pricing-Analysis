@@ -68,7 +68,7 @@ class RawPriceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RawPrice
-        fields = ("id", "platform", "title", "price", "currency", "exchange_rate", "price_mad", "url", "seller_rating", "condition", "analysis")
+        fields = ("id", "platform", "title", "price", "currency", "exchange_rate", "price_mad", "url", "image_url", "seller_rating", "condition", "analysis")
 
     def get_analysis(self, obj):
         res = obj.analysis_results.first()

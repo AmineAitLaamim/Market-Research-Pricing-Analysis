@@ -54,9 +54,14 @@ export default function BestDealCard({ deal, loading = false }) {
         )}
       </div>
 
-      <p style={{ fontWeight: 600, fontSize: '15px', marginBottom: '12px', color: 'var(--text-primary)', lineHeight: 1.45 }}>
-        {deal.title}
-      </p>
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', marginBottom: '14px' }}>
+        {deal.image_url && (
+          <img src={deal.image_url} alt="" style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 6, background: '#fff', padding: '4px', border: '1px solid var(--border)' }} />
+        )}
+        <p style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)', lineHeight: 1.45, margin: 0 }}>
+          {deal.title}
+        </p>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
         <PlatformBadge platform={deal.platform} />

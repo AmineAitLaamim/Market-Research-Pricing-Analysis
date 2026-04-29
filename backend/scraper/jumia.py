@@ -59,6 +59,8 @@ def extract_jumia_results(html: str) -> list[dict[str, Any]]:
             or card.css(".rev::text").get()
         )
         rating = _parse_rating(rating_text)
+        
+        image_url = card.css("img.img::attr(data-src), img.img::attr(src), img::attr(data-src), img::attr(src)").get()
 
         if not title or not url or price is None:
             continue
@@ -69,6 +71,7 @@ def extract_jumia_results(html: str) -> list[dict[str, Any]]:
                 "price": price,
                 "currency": currency or "MAD",
                 "url": urljoin(BASE_URL, url),
+                "image_url": image_url,
                 "platform": "jumia",
                 "rating": rating,
             }

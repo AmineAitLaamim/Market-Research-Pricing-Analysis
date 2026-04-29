@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage'
 import SearchPage   from './pages/SearchPage'
 import ResultsPage  from './pages/ResultsPage'
 import HistoryPage  from './pages/HistoryPage'
+import ItemPage     from './pages/ItemPage'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="/search"        element={<SearchPage />} />
               <Route path="/results/:id"   element={<ResultsPage />} />
               <Route path="/history"       element={<HistoryPage />} />
+              <Route path="/item/:id"      element={<ItemPage />} />
             </Route>
 
             {/* Fallback */}

@@ -29,3 +29,5 @@ staticfiles/
 .idea/
 
 project_pdf/
+
+html/

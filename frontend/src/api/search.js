@@ -35,4 +35,9 @@ export const searchApi = {
   getRules(id) {
     return api.get(`search/${id}/rules/`)
   },
+
+  /** Get a single item by its ID — GET /api/search/item/:itemId/ */
+  getItem(itemId) {
+    return api.get(`search/item/${itemId}/`)
+  },
 }
