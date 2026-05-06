@@ -31,3 +31,5 @@ staticfiles/
 project_pdf/
 
 html/
+
+pytest-cache*
