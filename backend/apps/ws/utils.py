@@ -24,3 +24,20 @@ def notify_ws(search_id, event_type, payload):
     t = threading.Thread(target=_do_notify_ws, args=(search_id, event_type, payload))
     t.start()
     t.join()
+
+
+def notify_alert_ws(user_id: int, unread_count: int):
+    """
+    Push a real-time alert notification to all browser tabs open for this user.
+    Called from the check_price_drops Celery task after new alerts are created.
+    """
+    channel_layer = get_channel_layer()
+    group_name = f"alerts_user_{user_id}"
+    message = {
+        "type": "alert_message",
+        "data": {"type": "new_alerts", "unread_count": unread_count},
+    }
+    try:
+        async_to_sync(channel_layer.group_send)(group_name, message)
+    except Exception:
+        logger.exception("Failed to send alert WebSocket notification for user %s", user_id)

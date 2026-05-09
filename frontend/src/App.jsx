@@ -9,6 +9,8 @@ import RegisterPage from './pages/RegisterPage'
 import SearchPage   from './pages/SearchPage'
 import ResultsPage  from './pages/ResultsPage'
 import HistoryPage  from './pages/HistoryPage'
+import ComparisonPage from './pages/ComparisonPage'
+import AlertsPage   from './pages/AlertsPage'
 import ItemPage     from './pages/ItemPage'
 
 export default function App() {
@@ -26,7 +28,9 @@ export default function App() {
               <Route index element={<Navigate to="/search" replace />} />
               <Route path="/search"        element={<SearchPage />} />
               <Route path="/results/:id"   element={<ResultsPage />} />
+              <Route path="/history/compare" element={<ComparisonPage />} />
               <Route path="/history"       element={<HistoryPage />} />
+              <Route path="/alerts"        element={<AlertsPage />} />
               <Route path="/item/:id"      element={<ItemPage />} />
             </Route>
 

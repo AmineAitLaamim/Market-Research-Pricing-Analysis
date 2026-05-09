@@ -40,4 +40,14 @@ export const searchApi = {
   getItem(itemId) {
     return api.get(`search/item/${itemId}/`)
   },
+
+  /** Get analytics data for dashboard — GET /api/search/analytics/ */
+  getAnalytics() {
+    return api.get('search/analytics/')
+  },
+
+  /** Get comparison data — GET /api/search/compare/?a={a}&b={b} */
+  getComparison(a, b) {
+    return api.get('search/compare/', { params: { a, b } })
+  },
 }
