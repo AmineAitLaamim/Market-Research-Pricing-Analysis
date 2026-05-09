@@ -37,17 +37,24 @@ export default function PriceChart({ priceHistory, calendarData, avgPrice, thres
     )
   }
 
-  // Build chart data with formatted labels
-  const chartData = priceHistory.map((p, i) => {
-    const dt = new Date(p.date)
-    const cal = calendarData?.[i]
-    return {
-      ...p,
-      dateLabel: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      is_lowest: cal?.is_lowest || false,
-      is_highest: cal?.is_highest || false,
-    }
-  })
+  // Build calendar flag lookup by date string
+  const calMap = {}
+  if (calendarData) calendarData.forEach(c => { calMap[c.date] = c })
+
+  // Build chart data sorted chronologically (oldest → newest = left → right)
+  const chartData = priceHistory
+    .map(p => {
+      const dt = new Date(p.date)
+      const cal = calMap[p.date]
+      return {
+        ...p,
+        _ts: dt.getTime(),
+        dateLabel: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        is_lowest: cal?.is_lowest || false,
+        is_highest: cal?.is_highest || false,
+      }
+    })
+    .sort((a, b) => a._ts - b._ts)
 
   const prices = chartData.map(d => d.price_mad)
   const minP = Math.min(...prices)

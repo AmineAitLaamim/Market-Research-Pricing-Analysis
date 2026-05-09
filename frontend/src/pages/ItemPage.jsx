@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Trophy, AlertTriangle, CheckCircle, Info } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Trophy, AlertTriangle, CheckCircle, Info, TrendingDown } from 'lucide-react'
 import { searchApi } from '../api/search'
 import { PLATFORMS, CONDITION_LABELS } from '../utils/constants'
 
@@ -96,12 +96,19 @@ export default function ItemPage() {
               </div>
             )}
             
-            <div style={{ marginTop: '24px' }}>
+            <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {item.url && (
                 <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
                   View on {PLATFORMS.find(p => p.id === item.platform)?.name || item.platform} <ExternalLink size={16} style={{ marginLeft: '8px' }} />
                 </a>
               )}
+              <button 
+                className="btn btn-secondary" 
+                style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
+                onClick={() => navigate('/analytics', { state: { product: { title: item.title, platform: item.platform } } })}
+              >
+                <TrendingDown size={16} style={{ marginRight: '8px' }} /> Analyze this item
+              </button>
             </div>
           </div>
 

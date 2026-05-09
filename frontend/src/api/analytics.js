@@ -9,6 +9,10 @@ export const analyticsApi = {
     return api.get(`analytics/products/`, { params: { q: '' } })
   },
 
+  getTopDrops() {
+    return api.get(`analytics/top-drops/`)
+  },
+
   getProductHistory(normalizedTitle, platform) {
     return api.get(`analytics/product-history/`, { params: { title: normalizedTitle, platform } })
   },

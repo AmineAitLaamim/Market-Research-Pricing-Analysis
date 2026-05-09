@@ -11,8 +11,65 @@ from decimal import Decimal
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 
-from .models import PriceThreshold, RawPrice, Search
+from .models import PriceAlert, PriceThreshold, RawPrice, Search
 from .utils import normalize_title
+
+
+class TopDropsView(generics.GenericAPIView):
+    """Return the 6 products with the biggest price drops (current vs max historical) for the user."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        qs = RawPrice.objects.filter(search__user=request.user).order_by("scraped_at")
+        
+        # Group by normalized title + platform
+        grouped = {}
+        for p in qs.iterator():
+            norm = normalize_title(p.title)
+            key = (norm, p.platform)
+            if key not in grouped:
+                grouped[key] = {
+                    "title": p.title,
+                    "normalized_title": norm,
+                    "platform": p.platform,
+                    "prices": [],
+                    "dates": [],
+                    "image_url": None,
+                }
+            grouped[key]["prices"].append(float(p.price) * p.exchange_rate)
+            grouped[key]["dates"].append(p.scraped_at)
+            if p.image_url:
+                grouped[key]["image_url"] = p.image_url
+
+        drops = []
+        for key, data in grouped.items():
+            if len(data["prices"]) < 2:
+                continue
+                
+            latest_price = data["prices"][-1]
+            # Max price before the latest scrape
+            max_price = max(data["prices"][:-1])
+            
+            if latest_price < max_price:
+                drop_amount = max_price - latest_price
+                # Filter out negligible drops (< 1 MAD)
+                if drop_amount >= 1.0:
+                    drop_percent = (drop_amount / max_price) * 100
+                    drops.append({
+                        "title": data["title"],
+                        "normalized_title": data["normalized_title"],
+                        "platform": data["platform"],
+                        "image_url": data["image_url"],
+                        "latest_price_mad": round(latest_price, 2),
+                        "old_price_mad": round(max_price, 2),
+                        "drop_amount": round(drop_amount, 2),
+                        "drop_percent": round(drop_percent, 1),
+                        "last_scraped": data["dates"][-1].isoformat(),
+                    })
+                    
+        # Sort by drop amount descending
+        drops.sort(key=lambda x: x["drop_amount"], reverse=True)
+        return Response(drops)
 
 
 class ProductSearchView(generics.GenericAPIView):
@@ -73,6 +130,8 @@ class ProductHistoryView(generics.GenericAPIView):
 
         if not title_q or not platform_q:
             return Response({"detail": "title and platform are required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        title_q = normalize_title(title_q)
 
         all_prices = (
             RawPrice.objects.filter(search__user=request.user, platform=platform_q)
@@ -201,10 +260,18 @@ class ProductHistoryView(generics.GenericAPIView):
         title_counter = Counter(p.title for p in matched)
         display_title = title_counter.most_common(1)[0][0]
 
+        # Extract image_url from the latest scrape if available
+        image_url = None
+        for p in reversed(matched):
+            if p.image_url:
+                image_url = p.image_url
+                break
+
         return Response({
             "title": display_title,
             "normalized_title": title_q,
             "platform": platform_q,
+            "image_url": image_url,
             "trend": trend,
             "recommendation": recommendation,
             "summary": summary,
@@ -225,6 +292,8 @@ class SimilarProductsView(generics.GenericAPIView):
 
         if not title_q:
             return Response({"detail": "title is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        title_q = normalize_title(title_q)
 
         all_prices = RawPrice.objects.filter(search__user=request.user).select_related("search")
 

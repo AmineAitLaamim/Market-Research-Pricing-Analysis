@@ -25,7 +25,7 @@ const TREND_CONFIG = {
   uncertain:   { icon: HelpCircle,   label: 'Not enough data yet',  bg: 'var(--bg-muted)', color: 'var(--text-muted)' },
 }
 
-export default function ProductDetail({ product, onBack }) {
+export default function ProductDetail({ product, onBack, onSelectProduct }) {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [similar, setSimilar] = useState([])
@@ -39,8 +39,8 @@ export default function ProductDetail({ product, onBack }) {
     setLoading(true)
     setError(null)
     Promise.all([
-      analyticsApi.getProductHistory(product.normalized_title, product.platform),
-      analyticsApi.getSimilarProducts(product.normalized_title, product.platform),
+      analyticsApi.getProductHistory(product.normalized_title || product.title, product.platform),
+      analyticsApi.getSimilarProducts(product.normalized_title || product.title, product.platform),
     ])
       .then(([histRes, simRes]) => {
         setData(histRes.data)
@@ -51,7 +51,7 @@ export default function ProductDetail({ product, onBack }) {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [product.normalized_title, product.platform])
+  useEffect(() => { load() }, [product.normalized_title, product.title, product.platform])
 
   async function saveThreshold() {
     setThresholdError('')
@@ -108,9 +108,12 @@ export default function ProductDetail({ product, onBack }) {
         <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '6px' }}>
           <ArrowLeft size={18} />
         </button>
-        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-          <h1 style={{ fontSize: '18px', fontWeight: 500, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.title}</h1>
-          <span style={{ fontSize: '11px', background: 'var(--bg-muted)', padding: '2px 8px', borderRadius: '4px', textTransform: 'capitalize' }}>{data.platform}</span>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {data.image_url && (
+            <img src={data.image_url} alt={data.title} style={{ width: '200px', height: '200px', objectFit: 'contain', marginBottom: '16px', borderRadius: '12px', background: '#fff', border: '0.5px solid var(--border)' }} />
+          )}
+          <h1 style={{ fontSize: '18px', fontWeight: 500, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{data.title}</h1>
+          <span style={{ fontSize: '11px', background: 'var(--bg-muted)', padding: '2px 8px', borderRadius: '4px', textTransform: 'capitalize', marginTop: '4px' }}>{data.platform}</span>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => navigate(`/search?q=${encodeURIComponent(scrape_log[0]?.search_query || '')}`)}>
           <SearchIcon size={12} /> Scrape now
@@ -197,13 +200,7 @@ export default function ProductDetail({ product, onBack }) {
             {similar.map((s, i) => (
               <div
                 key={i}
-                onClick={() => {
-                  onBack()
-                  setTimeout(() => {
-                    // Re-select the new product — triggers a reload
-                    window.__analyticsSelectProduct?.(s)
-                  }, 50)
-                }}
+                onClick={() => onSelectProduct(s)}
                 style={{
                   minWidth: '200px', padding: '14px', borderRadius: '10px',
                   border: '0.5px solid var(--border)', cursor: 'pointer', flexShrink: 0,
