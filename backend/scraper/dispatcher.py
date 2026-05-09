@@ -4,6 +4,7 @@ from typing import Any
 from .base import close_browser, get_browser
 from .jumia import scrape_jumia
 from .avito import scrape_avito
+from .aliexpress import scrape_aliexpress
 from apps.ws.utils import notify_ws
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 SCRAPER_MAP = {
     "jumia": scrape_jumia,
     "avito": scrape_avito,
+    "aliexpress": scrape_aliexpress,
 }
 
 def scrape_all(query: str, platforms: list[str], search_id: int | None = None) -> list[dict[str, Any]]:
