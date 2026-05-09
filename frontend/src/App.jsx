@@ -11,6 +11,7 @@ import ResultsPage  from './pages/ResultsPage'
 import HistoryPage  from './pages/HistoryPage'
 import ComparisonPage from './pages/ComparisonPage'
 import AlertsPage   from './pages/AlertsPage'
+import AnalyticsPage from './pages/AnalyticsPage'
 import ItemPage     from './pages/ItemPage'
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/history/compare" element={<ComparisonPage />} />
               <Route path="/history"       element={<HistoryPage />} />
               <Route path="/alerts"        element={<AlertsPage />} />
+              <Route path="/analytics"    element={<AnalyticsPage />} />
               <Route path="/item/:id"      element={<ItemPage />} />
             </Route>
 

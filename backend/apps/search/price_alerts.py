@@ -4,18 +4,13 @@ Price drop detection — runs as a Celery async task after each scrape completes
 
 import difflib
 import logging
-import re
 from decimal import Decimal
 
 from celery import shared_task
 
+from .utils import normalize_title
+
 logger = logging.getLogger(__name__)
-
-
-def _normalize(title: str) -> str:
-    title = title.lower()
-    title = re.sub(r"[^\w\s]", "", title)
-    return " ".join(title.split())
 
 
 @shared_task(
@@ -33,8 +28,7 @@ def check_price_drops(self, search_id: int):
     Dispatched with:  check_price_drops.delay(search.id)
     """
     try:
-        # Imported inside the task to avoid circular imports at module load time
-        from .models import PriceAlert, RawPrice, Search
+        from .models import PriceAlert, PriceThreshold, RawPrice, Search
 
         new_search = Search.objects.select_related("user").get(pk=search_id)
         user = new_search.user
@@ -69,14 +63,14 @@ def check_price_drops(self, search_id: int):
         # 3. Build normalised-title → RawPrice dict for old results
         old_map: dict[str, RawPrice] = {}
         for p in old_prices:
-            old_map[_normalize(p.title)] = p
+            old_map[normalize_title(p.title)] = p
 
         alerts_created = 0
         alerts_updated = 0
 
         # 4. Match and detect drops
         for new_item in new_prices:
-            norm_new = _normalize(new_item.title)
+            norm_new = normalize_title(new_item.title)
 
             # Exact match first
             old_item = old_map.get(norm_new)
@@ -94,7 +88,7 @@ def check_price_drops(self, search_id: int):
                     old_item = old_map[best_key]
 
             if old_item is None:
-                continue  # No match found
+                continue
 
             # 5. Calculate prices in MAD
             old_price_mad = Decimal(str(float(old_item.price) * old_item.exchange_rate))
@@ -124,10 +118,10 @@ def check_price_drops(self, search_id: int):
                 product_title=new_item.title,
                 search_query__iexact=new_search.query,
                 is_read=False,
+                is_threshold_alert=False,
             ).first()
 
             if existing:
-                # Delete and recreate to refresh the created_at timestamp
                 existing.delete()
                 alerts_updated += 1
             else:
@@ -138,8 +132,36 @@ def check_price_drops(self, search_id: int):
                 product_title=new_item.title,
                 search_query=new_search.query,
                 is_read=False,
+                is_threshold_alert=False,
                 **alert_data,
             )
+
+            # 7. Threshold alert — check if the new price hit the user's target
+            threshold = PriceThreshold.objects.filter(
+                user=user,
+                normalized_title=norm_new,
+                platform=new_item.platform,
+            ).first()
+
+            if threshold and new_price_mad <= threshold.threshold_mad:
+                existing_ta = PriceAlert.objects.filter(
+                    user=user,
+                    product_title=new_item.title,
+                    search_query__iexact=new_search.query,
+                    is_read=False,
+                    is_threshold_alert=True,
+                ).first()
+                if existing_ta:
+                    existing_ta.delete()
+
+                PriceAlert.objects.create(
+                    user=user,
+                    product_title=new_item.title,
+                    search_query=new_search.query,
+                    is_read=False,
+                    is_threshold_alert=True,
+                    **alert_data,
+                )
 
         logger.info(
             "check_price_drops done for search_id=%s query=%r — created=%d updated=%d",

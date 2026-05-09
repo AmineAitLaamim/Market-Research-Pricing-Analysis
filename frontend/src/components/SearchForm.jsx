@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { PLATFORMS } from '../utils/constants'
 import { ChevronDown, Search } from 'lucide-react'
 
-export default function SearchForm({ onSubmit, loading = false }) {
-  const [query, setQuery]       = useState('')
+export default function SearchForm({ onSubmit, loading = false, initialQuery = '' }) {
+  const [query, setQuery]       = useState(initialQuery)
   const [selected, setSelected] = useState(PLATFORMS.map((p) => p.id))
   const [qError, setQError]     = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)

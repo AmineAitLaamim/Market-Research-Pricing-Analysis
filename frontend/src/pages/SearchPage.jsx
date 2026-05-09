@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { searchApi } from '../api/search'
 import { useToast } from '../context/ToastContext'
 import SearchForm from '../components/SearchForm'
@@ -95,8 +95,10 @@ function SearchProgressCard({ id, onRemove }) {
 
 export default function SearchPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
+  const initialQuery = searchParams.get('q') || ''
   const [activeSearches, setActiveSearches] = useState(() => {
     try {
       const saved = localStorage.getItem('activeSearches')
@@ -131,7 +133,7 @@ export default function SearchPage() {
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', paddingTop: '24px', paddingRight: '340px' }}>
       <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
         <div style={{ marginBottom: '40px' }}>
-          <SearchForm onSubmit={handleSearch} loading={loading} />
+          <SearchForm onSubmit={handleSearch} loading={loading} initialQuery={initialQuery} />
         </div>
         
         <AnalyticsDashboard />

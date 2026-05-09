@@ -136,6 +136,7 @@ class PriceAlert(models.Model):
     product_url   = models.URLField(max_length=2000)
     search_query  = models.CharField(max_length=255)
     is_read       = models.BooleanField(default=False)
+    is_threshold_alert = models.BooleanField(default=False)
     created_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -143,4 +144,21 @@ class PriceAlert(models.Model):
         indexes = [
             models.Index(fields=["user", "-created_at"]),
         ]
+
+
+class PriceThreshold(models.Model):
+    user             = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="price_thresholds",
+    )
+    normalized_title = models.CharField(max_length=500)
+    platform         = models.CharField(max_length=100)
+    threshold_mad    = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at       = models.DateTimeField(auto_now_add=True)
+    updated_at       = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ["user", "normalized_title", "platform"]
+
 

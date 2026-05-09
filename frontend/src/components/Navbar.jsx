@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Search, History, LogOut } from 'lucide-react'
+import { Search, History, LogOut, BarChart3 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import AlertBell from './AlertBell'
 
@@ -36,6 +36,14 @@ export default function Navbar() {
         >
           <History size={14} />
           <span>History</span>
+        </NavLink>
+
+        <NavLink
+          to="/analytics"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+        >
+          <BarChart3 size={14} />
+          <span>Analytics</span>
         </NavLink>
       </div>
 

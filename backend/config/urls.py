@@ -10,5 +10,6 @@ urlpatterns = [
     path('healthz/', health_check),
     path('api/auth/', include('apps.authentication.urls')),
     path('api/search/', include('apps.search.urls')),
+    path('api/analytics/', include('apps.search.analytics_urls')),
     path('api/export/', include('apps.export.urls')),
 ]
