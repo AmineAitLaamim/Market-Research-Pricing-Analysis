@@ -81,7 +81,8 @@ class SearchStatusView(generics.RetrieveAPIView):
 from rest_framework.pagination import PageNumberPagination
 from .models import RawPrice, SearchAnalysis, AssociationRule
 from .serializers import RawPriceSerializer, AssociationRuleSerializer
-from django.db.models import F
+from django.db.models import F, Count, Avg, FloatField, ExpressionWrapper
+from django.db.models.functions import TruncDate
 
 class ResultsPagination(PageNumberPagination):
     page_size = 20
@@ -159,3 +160,76 @@ class RawPriceDetailView(generics.RetrieveAPIView):
     serializer_class = RawPriceSerializer
     permission_classes = (permissions.IsAuthenticated,)
     queryset = RawPrice.objects.all()
+
+class AnalyticsView(generics.RetrieveAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        
+        # 1. Summary Metrics
+        total_searches = Search.objects.filter(user=user).count()
+        total_items = RawPrice.objects.filter(search__user=user).count()
+        avg_items = total_items / total_searches if total_searches > 0 else 0
+        
+        most_searched = Search.objects.filter(user=user).values("query").annotate(count=Count("id")).order_by("-count").first()
+        most_searched_keyword = most_searched["query"] if most_searched else "N/A"
+
+        # 2. Price Trend Chart
+        trends = (
+            RawPrice.objects.filter(search__user=user)
+            .annotate(date=TruncDate("scraped_at"))
+            .values("date", "platform")
+            .annotate(avg_price=Avg(F("price") * F("exchange_rate"), output_field=FloatField()))
+            .order_by("date")
+        )
+        
+        trend_data = {}
+        for t in trends:
+            # handle cases where date might be None just in case
+            if not t["date"]: continue
+            date_str = t["date"].strftime("%Y-%m-%d")
+            platform = t["platform"]
+            avg_price = round(t["avg_price"], 2) if t["avg_price"] else 0
+            if date_str not in trend_data:
+                trend_data[date_str] = {"date": date_str}
+            trend_data[date_str][platform] = avg_price
+        
+        trend_list = sorted(list(trend_data.values()), key=lambda x: x["date"])
+
+        # 3. Top Cheapest Products
+        cheapest_products = (
+            RawPrice.objects.filter(search__user=user)
+            .annotate(price_mad=ExpressionWrapper(F("price") * F("exchange_rate"), output_field=FloatField()))
+            .order_by("price_mad")[:5]
+        )
+        cheapest_data = [
+            {
+                "id": p.id,
+                "title": p.title,
+                "platform": p.platform,
+                "price_mad": round(p.price_mad, 2) if p.price_mad else 0,
+                "url": p.url,
+            } for p in cheapest_products
+        ]
+
+        # 4. Keyword Frequency
+        keywords = (
+            Search.objects.filter(user=user)
+            .values("query")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:10]
+        )
+        keyword_data = [{"keyword": k["query"], "count": k["count"]} for k in keywords]
+
+        return Response({
+            "summary": {
+                "total_searches": total_searches,
+                "total_items": total_items,
+                "avg_items_per_search": round(avg_items, 1),
+                "most_searched_keyword": most_searched_keyword,
+            },
+            "price_trends": trend_list,
+            "top_cheap_products": cheapest_data,
+            "keyword_frequency": keyword_data,
+        })

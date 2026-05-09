@@ -40,4 +40,9 @@ export const searchApi = {
   getItem(itemId) {
     return api.get(`search/item/${itemId}/`)
   },
+
+  /** Get analytics data for dashboard — GET /api/search/analytics/ */
+  getAnalytics() {
+    return api.get('search/analytics/')
+  },
 }

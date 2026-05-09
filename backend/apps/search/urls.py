@@ -8,10 +8,12 @@ from .views import (
     SearchPCAView,
     SearchRulesView,
     RawPriceDetailView,
+    AnalyticsView,
 )
 
 urlpatterns = [
     path("", SearchListCreateView.as_view(), name="search-list-create"),
+    path("analytics/", AnalyticsView.as_view(), name="search-analytics"),
     path("item/<int:pk>/", RawPriceDetailView.as_view(), name="item-detail"),
     path("<int:pk>/", SearchDetailView.as_view(), name="search-detail"),
     path("<int:pk>/status/", SearchStatusView.as_view(), name="search-status"),

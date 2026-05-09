@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext'
 import SearchForm from '../components/SearchForm'
 import { connectWebSocket } from '../utils/websocket'
 import ProgressIndicator from '../components/ProgressIndicator'
+import AnalyticsDashboard from '../components/AnalyticsDashboard'
 
 function SearchProgressCard({ id, onRemove }) {
   const navigate = useNavigate()
@@ -127,9 +128,13 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', paddingTop: '24px' }}>
-      <div style={{ maxWidth: '720px', width: '100%', margin: '0 auto', marginBottom: '40px' }}>
-        <SearchForm onSubmit={handleSearch} loading={loading} />
+    <div className="page-container" style={{ display: 'flex', flexDirection: 'column', paddingTop: '24px', paddingRight: '340px' }}>
+      <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
+        <div style={{ marginBottom: '40px' }}>
+          <SearchForm onSubmit={handleSearch} loading={loading} />
+        </div>
+        
+        <AnalyticsDashboard />
       </div>
 
       <div style={{
