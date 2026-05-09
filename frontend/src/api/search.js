@@ -45,4 +45,9 @@ export const searchApi = {
   getAnalytics() {
     return api.get('search/analytics/')
   },
+
+  /** Get comparison data — GET /api/search/compare/?a={a}&b={b} */
+  getComparison(a, b) {
+    return api.get('search/compare/', { params: { a, b } })
+  },
 }

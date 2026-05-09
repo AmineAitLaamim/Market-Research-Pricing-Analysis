@@ -116,6 +116,10 @@ def run_search_pipeline(self, search_id):
         search.status = Search.Status.COMPLETED
         search.save()
 
+        # Dispatch price-drop detection as a separate async Celery task
+        from .price_alerts import check_price_drops
+        check_price_drops.delay(search.id)
+
         # WebSocket notification sent AFTER atomic block closes
         notify_ws(search_id, "done", {})
 

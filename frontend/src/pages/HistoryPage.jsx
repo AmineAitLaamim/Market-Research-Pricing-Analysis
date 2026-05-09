@@ -33,6 +33,9 @@ export default function HistoryPage() {
   const [total,        setTotal]        = useState(0)
   const [loading,      setLoading]      = useState(true)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  
+  // State for comparison feature
+  const [compareSearch, setCompareSearch] = useState(null)
 
   const PAGE_SIZE  = 20
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1
@@ -59,6 +62,9 @@ export default function HistoryPage() {
       setItems((prev) => prev.filter((i) => i.id !== deleteTarget))
       setTotal((t) => t - 1)
       showToast('Search deleted', 'success')
+      if (compareSearch?.id === deleteTarget) {
+        setCompareSearch(null)
+      }
     } catch {
       showToast('Failed to delete', 'error')
     } finally {
@@ -73,16 +79,40 @@ export default function HistoryPage() {
     })
   }
 
+  function handleCompareClick(e, item) {
+    e.stopPropagation()
+    if (!compareSearch) {
+      setCompareSearch(item)
+    } else {
+      if (compareSearch.id === item.id) {
+        setCompareSearch(null)
+      } else {
+        navigate(`/history/compare?a=${compareSearch.id}&b=${item.id}`)
+      }
+    }
+  }
+
   return (
     <div className="page-container">
       <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 className="page-title">Search History</h1>
-          <p className="page-subtitle">All your previous market research queries</p>
+          <p className="page-subtitle">
+            {compareSearch 
+              ? `Select another search for "${compareSearch.query}" to compare`
+              : 'All your previous market research queries'}
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate('/search')}>
-          New Search
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {compareSearch && (
+            <button className="btn btn-secondary" onClick={() => setCompareSearch(null)}>
+              Cancel Compare
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => navigate('/search')}>
+            New Search
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -103,64 +133,94 @@ export default function HistoryPage() {
       ) : (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="card"
-                style={{
-                  padding: '16px 20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  flexWrap: 'wrap',
-                  cursor: 'pointer',
-                  transition: 'transform var(--transition-fast), box-shadow var(--transition-fast)',
-                }}
-                onClick={() => navigate(`/results/${item.id}`)}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateX(3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
-              >
-                {/* Icon */}
-                <div style={{
-                  width: '38px', height: '38px', borderRadius: '10px',
-                  background: 'var(--brand-light)', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  fontSize: '18px', flexShrink: 0,
-                }}>
-                  🔍
-                </div>
-
-                {/* Query + platforms */}
-                <div style={{ flex: 1, minWidth: '140px' }}>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '5px' }}>
-                    {item.query}
-                  </div>
-                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-                    {(item.platforms ?? []).map((p) => <PlatformBadge key={p} platform={p} />)}
-                  </div>
-                </div>
-
-                {/* Status */}
-                <span className={`badge badge-${STATUS_COLORS[item.status] || 'neutral'}`}>
-                  {item.status}
-                </span>
-
-                {/* Date */}
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                  {formatDate(item.created_at)}
-                </span>
-
-                {/* Delete */}
-                <button
-                  id={`delete-search-${item.id}`}
-                  className="btn btn-danger btn-sm"
-                  onClick={(e) => { e.stopPropagation(); setDeleteTarget(item.id) }}
-                  title="Delete"
+            {items.map((item) => {
+              const isSelected = compareSearch?.id === item.id
+              const isComparing = !!compareSearch
+              const canCompare = compareSearch ? compareSearch.query.toLowerCase() === item.query.toLowerCase() : true
+              
+              return (
+                <div
+                  key={item.id}
+                  className="card"
+                  style={{
+                    padding: '16px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    flexWrap: 'wrap',
+                    cursor: canCompare ? 'pointer' : 'not-allowed',
+                    opacity: (!canCompare && isComparing) ? 0.4 : 1,
+                    border: isSelected ? '2px solid var(--brand)' : '1px solid var(--border)',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  onClick={() => canCompare ? navigate(`/results/${item.id}`) : null}
+                  onMouseEnter={(e) => { 
+                    if (canCompare) {
+                      e.currentTarget.style.transform = 'translateX(3px)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+                    }
+                  }}
+                  onMouseLeave={(e) => { 
+                    if (canCompare) {
+                      e.currentTarget.style.transform = ''
+                      e.currentTarget.style.boxShadow = ''
+                    }
+                  }}
                 >
-                  Delete
-                </button>
-              </div>
-            ))}
+                  {/* Icon */}
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '10px',
+                    background: isSelected ? 'var(--brand)' : 'var(--brand-light)', 
+                    color: isSelected ? '#fff' : 'inherit',
+                    display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: '18px', flexShrink: 0,
+                  }}>
+                    🔍
+                  </div>
+
+                  {/* Query + platforms */}
+                  <div style={{ flex: 1, minWidth: '140px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '5px' }}>
+                      {item.query}
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      {(item.platforms ?? []).map((p) => <PlatformBadge key={p} platform={p} />)}
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <span className={`badge badge-${STATUS_COLORS[item.status] || 'neutral'}`}>
+                    {item.status}
+                  </span>
+
+                  {/* Date */}
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                    {formatDate(item.created_at)}
+                  </span>
+
+                  {/* Compare Button */}
+                  {item.status === 'completed' && canCompare && (
+                    <button
+                      className={`btn btn-sm ${isSelected ? 'btn-secondary' : 'btn-primary'}`}
+                      onClick={(e) => handleCompareClick(e, item)}
+                    >
+                      {isSelected ? 'Cancel' : (isComparing ? 'Select' : 'Compare')}
+                    </button>
+                  )}
+
+                  {/* Delete */}
+                  <button
+                    id={`delete-search-${item.id}`}
+                    className="btn btn-danger btn-sm"
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item.id) }}
+                    title="Delete"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )
+            })}
           </div>
 
           <div className="pagination">

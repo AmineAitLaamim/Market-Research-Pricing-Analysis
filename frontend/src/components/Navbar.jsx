@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Search, History, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import AlertBell from './AlertBell'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -38,8 +39,9 @@ export default function Navbar() {
         </NavLink>
       </div>
 
-      {/* User area */}
+      {/* Bell + User area */}
       <div className="navbar-user">
+        <AlertBell />
         {user?.username && (
           <span className="navbar-username">{user.username}</span>
         )}
@@ -51,3 +53,4 @@ export default function Navbar() {
     </nav>
   )
 }
+

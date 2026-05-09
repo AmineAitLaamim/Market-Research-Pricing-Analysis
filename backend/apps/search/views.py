@@ -233,3 +233,172 @@ class AnalyticsView(generics.RetrieveAPIView):
             "top_cheap_products": cheapest_data,
             "keyword_frequency": keyword_data,
         })
+
+import difflib
+import re
+
+def normalize_title(title):
+    title = title.lower()
+    title = re.sub(r'[^\w\s]', '', title)
+    return ' '.join(title.split())
+
+class CompareView(generics.RetrieveAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, *args, **kwargs):
+        a_id = request.query_params.get('a')
+        b_id = request.query_params.get('b')
+
+        if not a_id or not b_id:
+            return Response({"detail": "Missing parameters a or b"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            search_a = Search.objects.get(id=a_id, user=request.user)
+            search_b = Search.objects.get(id=b_id, user=request.user)
+        except Search.DoesNotExist:
+            return Response({"detail": "Search not found or permission denied"}, status=status.HTTP_404_NOT_FOUND)
+
+        if search_a.query.lower() != search_b.query.lower():
+            return Response({"detail": "Cannot compare searches with different queries"}, status=status.HTTP_400_BAD_REQUEST)
+
+        prices_a = list(RawPrice.objects.filter(search=search_a))
+        prices_b = list(RawPrice.objects.filter(search=search_b))
+
+        dict_a = {normalize_title(p.title): p for p in prices_a}
+        dict_b = {normalize_title(p.title): p for p in prices_b}
+
+        matched = []
+        new_items = []
+        gone_items = []
+
+        for norm_a, p_a in dict_a.items():
+            if norm_a in dict_b:
+                p_b = dict_b[norm_a]
+                matched.append({
+                    "id_a": p_a.id, "id_b": p_b.id,
+                    "title": p_a.title,
+                    "platform": p_a.platform,
+                    "price_a": round(float(p_a.price) * p_a.exchange_rate, 2),
+                    "price_b": round(float(p_b.price) * p_b.exchange_rate, 2),
+                    "diff": round((float(p_b.price) * p_b.exchange_rate) - (float(p_a.price) * p_a.exchange_rate), 2),
+                    "url_a": p_a.url,
+                    "url_b": p_b.url,
+                })
+                del dict_b[norm_a]
+            else:
+                best_match = None
+                best_ratio = 0
+                for norm_b in list(dict_b.keys()):
+                    ratio = difflib.SequenceMatcher(None, norm_a, norm_b).ratio()
+                    if ratio > 0.85 and ratio > best_ratio:
+                        best_ratio = ratio
+                        best_match = norm_b
+                
+                if best_match:
+                    p_b = dict_b[best_match]
+                    matched.append({
+                        "id_a": p_a.id, "id_b": p_b.id,
+                        "title": p_a.title,
+                        "platform": p_a.platform,
+                        "price_a": round(float(p_a.price) * p_a.exchange_rate, 2),
+                        "price_b": round(float(p_b.price) * p_b.exchange_rate, 2),
+                        "diff": round((float(p_b.price) * p_b.exchange_rate) - (float(p_a.price) * p_a.exchange_rate), 2),
+                        "url_a": p_a.url,
+                        "url_b": p_b.url,
+                    })
+                    del dict_b[best_match]
+                else:
+                    gone_items.append({
+                        "id": p_a.id,
+                        "title": p_a.title,
+                        "platform": p_a.platform,
+                        "price_a": round(float(p_a.price) * p_a.exchange_rate, 2),
+                        "url_a": p_a.url,
+                    })
+        
+        for norm_b, p_b in dict_b.items():
+            new_items.append({
+                "id": p_b.id,
+                "title": p_b.title,
+                "platform": p_b.platform,
+                "price_b": round(float(p_b.price) * p_b.exchange_rate, 2),
+                "url_b": p_b.url,
+            })
+
+        avg_a = sum(float(p.price) * p.exchange_rate for p in prices_a) / len(prices_a) if prices_a else 0
+        avg_b = sum(float(p.price) * p.exchange_rate for p in prices_b) / len(prices_b) if prices_b else 0
+        
+        cheapest_a = min(prices_a, key=lambda p: float(p.price) * p.exchange_rate) if prices_a else None
+        cheapest_b = min(prices_b, key=lambda p: float(p.price) * p.exchange_rate) if prices_b else None
+
+        dist_data_a = [round(float(p.price) * p.exchange_rate, 2) for p in prices_a]
+        dist_data_b = [round(float(p.price) * p.exchange_rate, 2) for p in prices_b]
+
+        return Response({
+            "query": search_a.query,
+            "date_a": search_a.created_at.strftime("%Y-%m-%d"),
+            "date_b": search_b.created_at.strftime("%Y-%m-%d"),
+            "summary": {
+                "avg_price_a": round(avg_a, 2),
+                "avg_price_b": round(avg_b, 2),
+                "total_items_a": len(prices_a),
+                "total_items_b": len(prices_b),
+                "cheapest_a": round(float(cheapest_a.price) * cheapest_a.exchange_rate, 2) if cheapest_a else None,
+                "cheapest_b": round(float(cheapest_b.price) * cheapest_b.exchange_rate, 2) if cheapest_b else None,
+                "new_items_count": len(new_items),
+                "gone_items_count": len(gone_items),
+            },
+            "matched": matched,
+            "new_items": new_items,
+            "gone_items": gone_items,
+            "prices_a": dist_data_a,
+            "prices_b": dist_data_b,
+        })
+
+from .models import PriceAlert
+
+class AlertListView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        alerts = PriceAlert.objects.filter(user=request.user)
+        unread_count = alerts.filter(is_read=False).count()
+        data = [
+            {
+                "id": a.id,
+                "product_title": a.product_title,
+                "old_price": str(a.old_price),
+                "new_price": str(a.new_price),
+                "drop_amount": str(a.drop_amount),
+                "drop_percent": str(a.drop_percent),
+                "platform": a.platform,
+                "product_url": a.product_url,
+                "search_query": a.search_query,
+                "is_read": a.is_read,
+                "created_at": a.created_at.isoformat(),
+            }
+            for a in alerts
+        ]
+        return Response({"unread_count": unread_count, "results": data})
+
+
+class AlertMarkReadView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def patch(self, request, pk):
+        try:
+            alert = PriceAlert.objects.get(pk=pk, user=request.user)
+        except PriceAlert.DoesNotExist:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        alert.is_read = True
+        alert.save(update_fields=["is_read"])
+        return Response({"id": alert.id, "is_read": True})
+
+
+class AlertMarkAllReadView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def patch(self, request):
+        updated = PriceAlert.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({"marked": updated})
+

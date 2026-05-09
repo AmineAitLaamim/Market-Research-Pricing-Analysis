@@ -119,3 +119,28 @@ class AssociationRule(models.Model):
         indexes = [
             models.Index(fields=["search"]),
         ]
+
+
+class PriceAlert(models.Model):
+    user          = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="price_alerts",
+    )
+    product_title = models.CharField(max_length=500)
+    old_price     = models.DecimalField(max_digits=10, decimal_places=2)
+    new_price     = models.DecimalField(max_digits=10, decimal_places=2)
+    drop_amount   = models.DecimalField(max_digits=10, decimal_places=2)
+    drop_percent  = models.DecimalField(max_digits=5, decimal_places=1)
+    platform      = models.CharField(max_length=100)
+    product_url   = models.URLField(max_length=2000)
+    search_query  = models.CharField(max_length=255)
+    is_read       = models.BooleanField(default=False)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
