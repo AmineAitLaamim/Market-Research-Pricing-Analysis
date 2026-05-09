@@ -1,4 +1,4 @@
-.PHONY: run test migrate lint up down build logs
+.PHONY: run test migrate lint up down build logs restart-frontend
 
 # Local Development (Non-Docker)
 run:
@@ -27,3 +27,7 @@ build:
 
 logs:
 	docker compose -f docker/docker-compose.yml logs -f
+
+restart-frontend:
+	docker compose -f docker/docker-compose.yml stop frontend
+	docker compose -f docker/docker-compose.yml up -d frontend
