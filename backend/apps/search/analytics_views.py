@@ -16,15 +16,26 @@ from .utils import normalize_title
 
 
 class TopDropsView(generics.GenericAPIView):
-    """Return the 6 products with the biggest price drops (current vs max historical) for the user."""
+    """Return the top 20 products with the biggest price drops for the user."""
     permission_classes = (permissions.IsAuthenticated,)
 
     def get(self, request):
-        qs = RawPrice.objects.filter(search__user=request.user).order_by("scraped_at")
-        
+        import math
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # Only look at the last 90 days to keep it fast
+        since = timezone.now() - timedelta(days=90)
+        qs = (
+            RawPrice.objects
+            .filter(search__user=request.user, scraped_at__gte=since)
+            .order_by("scraped_at")
+            .only("id", "title", "platform", "price", "exchange_rate", "image_url", "scraped_at")
+        )
+
         # Group by normalized title + platform
         grouped = {}
-        for p in qs.iterator():
+        for p in qs.iterator(chunk_size=2000):
             norm = normalize_title(p.title)
             key = (norm, p.platform)
             if key not in grouped:
@@ -45,14 +56,10 @@ class TopDropsView(generics.GenericAPIView):
         for key, data in grouped.items():
             if len(data["prices"]) < 2:
                 continue
-                
             latest_price = data["prices"][-1]
-            # Max price before the latest scrape
             max_price = max(data["prices"][:-1])
-            
             if latest_price < max_price:
                 drop_amount = max_price - latest_price
-                # Filter out negligible drops (< 1 MAD)
                 if drop_amount >= 1.0:
                     drop_percent = (drop_amount / max_price) * 100
                     drops.append({
@@ -65,11 +72,14 @@ class TopDropsView(generics.GenericAPIView):
                         "drop_amount": round(drop_amount, 2),
                         "drop_percent": round(drop_percent, 1),
                         "last_scraped": data["dates"][-1].isoformat(),
+                        "deal_score": None,
+                        "is_anomaly": False,
                     })
-                    
-        # Sort by drop amount descending
-        drops.sort(key=lambda x: x["drop_amount"], reverse=True)
-        return Response(drops)
+
+        # Sort by drop_percent descending, return top 20
+        drops.sort(key=lambda x: x["drop_percent"], reverse=True)
+        return Response(drops[:20])
+
 
 
 class ProductSearchView(generics.GenericAPIView):

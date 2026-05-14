@@ -4,6 +4,7 @@ import { analyticsApi } from '../api/analytics'
 import { useToast } from '../context/ToastContext'
 import ProductDetail from '../components/analytics/ProductDetail'
 import { Search, Clock, TrendingDown, Package } from 'lucide-react'
+import { PLATFORMS } from '../utils/constants'
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -26,6 +27,23 @@ export default function AnalyticsPage() {
   const [searching, setSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef(null)
+
+  const [filters, setFilters] = useState({
+    platform: '',
+    minDiscount: '',
+    maxPrice: '',
+    bestDealOnly: false,
+  })
+
+  const filteredDrops = useMemo(() => {
+    return topDrops.filter(p => {
+      if (filters.platform && p.platform !== filters.platform) return false
+      if (filters.minDiscount && p.drop_percent < Number(filters.minDiscount)) return false
+      if (filters.maxPrice && p.latest_price_mad > Number(filters.maxPrice)) return false
+      if (filters.bestDealOnly && (p.is_anomaly || (p.deal_score ?? 0) < 0.7)) return false
+      return true
+    })
+  }, [topDrops, filters])
 
   // Load recent products and top drops on mount
   useEffect(() => {
@@ -140,13 +158,65 @@ export default function AnalyticsPage() {
 
         {/* Top Drops */}
         <div style={{ textAlign: 'left', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
-            <TrendingDown size={14} style={{ color: '#2e7d32' }} />
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Biggest recent price drops</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingDown size={14} style={{ color: '#2e7d32' }} />
+              <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Biggest recent price drops</span>
+              {topDrops.length > 0 && (
+                <span style={{ fontSize: '11px', background: 'var(--bg-muted)', padding: '2px 8px', borderRadius: '10px', color: 'var(--text-muted)' }}>
+                  {filteredDrops.length} of {topDrops.length}
+                </span>
+              )}
+            </div>
+            
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select 
+                value={filters.platform} 
+                onChange={e => setFilters(f => ({ ...f, platform: e.target.value }))}
+                className="btn btn-secondary btn-sm"
+                style={{ height: '32px', background: 'var(--surface)', fontWeight: 500 }}
+              >
+                <option value="">All Platforms</option>
+                {PLATFORMS.map(p => (
+                  <option key={p.id} value={p.id}>{p.icon} {p.name}</option>
+                ))}
+              </select>
+              
+              <select 
+                value={filters.minDiscount} 
+                onChange={e => setFilters(f => ({ ...f, minDiscount: e.target.value }))}
+                className="btn btn-secondary btn-sm"
+                style={{ height: '32px', background: 'var(--surface)', fontWeight: 500 }}
+              >
+                <option value="">Any Discount</option>
+                <option value="10">&gt; 10% Off</option>
+                <option value="25">&gt; 25% Off</option>
+                <option value="50">&gt; 50% Off</option>
+              </select>
+              
+              <input 
+                type="number"
+                placeholder="Max Price (MAD)"
+                value={filters.maxPrice}
+                onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value }))}
+                style={{ width: '130px', height: '32px', borderRadius: '6px', border: '0.5px solid var(--border)', padding: '0 10px', fontSize: '13px', background: 'var(--surface)' }}
+              />
+              {(filters.platform || filters.minDiscount || filters.maxPrice) && (
+                <button
+                  onClick={() => setFilters({ platform: '', minDiscount: '', maxPrice: '', bestDealOnly: false })}
+                  className="btn btn-ghost btn-sm"
+                  style={{ height: '32px', color: '#C1502E', fontSize: '12px' }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
-          {topDrops.length > 0 ? (
+          
+          {filteredDrops.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {topDrops.map((p, i) => (
+              {filteredDrops.map((p, i) => (
                 <div
                   key={`drop-${i}`}
                   onClick={() => selectProduct(p)}
@@ -191,7 +261,9 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-muted)', borderRadius: '12px', border: '1px dashed var(--border)', color: 'var(--text-muted)', fontSize: '13px' }}>
-              No price drops detected yet. Scrape keywords multiple times over a few days to catch drops!
+              {topDrops.length > 0
+                ? 'No drops match your current filters. Try clearing the filters above.'
+                : 'No price drops detected yet. Scrape keywords multiple times over a few days to catch drops!'}
             </div>
           )}
         </div>
