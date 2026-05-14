@@ -8,7 +8,8 @@ from urllib.parse import parse_qs, quote_plus, urljoin, urlparse
 
 from parsel import Selector
 
-from .base import create_context, parse_price_string
+from .base import create_context
+from .utils import clean_price, random_delay
 
 logger = logging.getLogger(__name__)
 
@@ -102,10 +103,7 @@ def _extract_ads_from_next_data(next_data: str, seen_urls: set[str]) -> list[dic
         elif isinstance(price_raw, (int, float)):
             price = price_raw
         elif isinstance(price_raw, str):
-            try:
-                price = float(price_raw.replace(",", "").replace(" ", ""))
-            except (ValueError, TypeError):
-                pass
+            price = clean_price(price_raw)
 
         if price is None or price <= 0:
             continue
@@ -286,7 +284,7 @@ def extract_avito_results(html: str, query: str | None = None) -> list[dict[str,
         if not price_text:
             price_text = card.xpath('.//*[contains(text(), "DH")]/text()').get()
 
-        price = parse_price_string(price_text)
+        price = clean_price(price_text)
         if price is None or price <= 0:
             continue
 
@@ -365,7 +363,8 @@ def scrape_avito(
 
             logger.info(f"Scraping Avito page {page_num}: {next_url}")
             page.goto(next_url, wait_until="networkidle", timeout=30000)
-            page.wait_for_timeout(2000)
+            
+            random_delay(1, 3)
 
             page_results = extract_avito_results(page.content(), query=query)
             if not page_results:

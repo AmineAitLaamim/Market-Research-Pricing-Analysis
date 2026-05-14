@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from scraper.base import parse_price_string
+from scraper.utils import clean_price
 from scraper.jumia import extract_jumia_results
 
 
@@ -21,6 +22,7 @@ def test_extract_jumia_results_from_fixture():
         "url": "https://www.jumia.ma/apple-iphone-15-128-go-noir-123456.html",
         "platform": "jumia",
         "rating": 4.5,
+        "image_url": None, # Adding image_url as it's now in the scraper results
     }
 
     assert results[1]["title"] == "Samsung Galaxy A55 256 Go"
@@ -30,8 +32,16 @@ def test_extract_jumia_results_from_fixture():
     assert results[1]["rating"] == 4.0
 
 
-def test_parse_price_string_handles_common_formats():
+def test_parse_price_string_delegation():
     assert parse_price_string("12,999 Dhs") == 12999.0
     assert parse_price_string("5.490 DH") == 5490.0
     assert parse_price_string("$1,299.50") == 1299.50
     assert parse_price_string(None) is None
+
+
+def test_clean_price_formats():
+    assert clean_price("12,999 Dhs") == 12999.0
+    assert clean_price("5.490 DH") == 5490.0
+    assert clean_price("$1,299.50") == 1299.50
+    assert clean_price("2.753,13 MAD") == 2753.13
+    assert clean_price(None) is None

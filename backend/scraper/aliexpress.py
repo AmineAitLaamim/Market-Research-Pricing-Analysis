@@ -8,7 +8,8 @@ from urllib.parse import quote_plus, urljoin
 
 from parsel import Selector
 
-from .base import create_context, parse_price_string
+from .base import create_context
+from .utils import clean_price, random_delay
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ def extract_aliexpress_results(html: str, query: str | None = None) -> list[dict
                 # Fallback to formatted price parsing
                 formatted = sale_price.get("formattedPrice")
                 if formatted:
-                    price = parse_price_string(formatted)
+                    price = clean_price(formatted)
             
             if price is None:
                 continue
@@ -155,7 +156,7 @@ def scrape_aliexpress(
             page.goto(next_url, wait_until="networkidle", timeout=30000)
             
             # Wait a bit for any dynamic content/redirects
-            page.wait_for_timeout(2000)
+            random_delay(1, 3)
 
             page_results = extract_aliexpress_results(page.content(), query=query_or_url)
             if not page_results:

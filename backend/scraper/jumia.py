@@ -5,7 +5,8 @@ from urllib.parse import quote_plus, urljoin
 
 from parsel import Selector
 
-from .base import create_context, parse_price_string
+from .base import create_context
+from .utils import clean_price, random_delay
 
 
 BASE_URL = "https://www.jumia.ma"
@@ -27,7 +28,7 @@ def _parse_price(price_text: str | None) -> tuple[float | None, str | None]:
         return None, None
 
     currency = "MAD" if "DH" in cleaned.upper() else None
-    price = parse_price_string(cleaned)
+    price = clean_price(cleaned)
     return price, currency
 
 
@@ -111,6 +112,8 @@ def scrape_jumia(query_or_url: str, browser, progress_callback=None) -> list[dic
             
             page.goto(next_url, wait_until="domcontentloaded")
             
+            random_delay(1, 3)
+
             # Wait for either products or an empty state
             try:
                 page.wait_for_selector(PRODUCT_CARD_SELECTOR, timeout=10000)
