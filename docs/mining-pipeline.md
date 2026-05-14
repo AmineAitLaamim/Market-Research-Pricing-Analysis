@@ -33,12 +33,17 @@ To visualize hundreds of products in a 2D scatter plot, we use **Principal Compo
 - This helps users see "market segments" (e.g., high-end vs. budget variants of the same product).
 
 ### 4. Scoring & Best Deal Detection (`scoring.py`)
-- Calculates a "Value Score" for each item.
-- **Factors:**
-    - Deviation from the mean price of the search.
-    - Product condition (if available).
-    - Seller rating (if available).
-- Items with the highest scores are flagged as "Best Deals".
+- Calculates a composite `deal_score` for non-anomalous items.
+- **Formula:** `0.7 * price_score + 0.3 * rating_score`
+    - `price_score = (max_price - price) / price_range`. If `price_range == 0`, defaults to `0.5`.
+    - `rating_score = rating / 5.0`. Missing ratings (including `None` or `np.nan` from the scraper) default to `0.0` safely via a `math.isnan` guard to prevent JSON serialization crashes on the backend.
+- Items flagged as anomalous receive a `deal_score` of `None`.
+- The item with the highest non-null `deal_score` is flagged as the "Best Deal".
+
+### 5. Price Statistics (`stats.py`)
+- Computes comprehensive statistical metrics across all non-anomalous items.
+- Calculates: `count`, `mean`, `median`, `std`, `variance`, `min`, `max`, `q1` (25th percentile), `q3` (75th percentile), and `iqr`.
+- This data is directly used to render the frontend's Stats Cards grid.
 
 ---
 

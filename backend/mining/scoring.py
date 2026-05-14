@@ -42,13 +42,19 @@ def compute_deal_scores(clean_items: list[dict], anomaly_flags: np.ndarray) -> l
             price_score = (max_price - price) / price_range
 
         # Rating Score
+        import math
         rating = item.get('rating')
         if rating is None:
             rating = item.get('seller_rating')
-        if rating is None:
-            rating = 0.0
             
-        rating_score = float(rating) / 5.0
+        try:
+            rating_float = float(rating)
+            if math.isnan(rating_float):
+                rating_float = 0.0
+        except (TypeError, ValueError):
+            rating_float = 0.0
+            
+        rating_score = rating_float / 5.0
 
         # Composite Deal Score
         deal_score = 0.7 * price_score + 0.3 * rating_score
