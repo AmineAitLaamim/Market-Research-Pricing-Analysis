@@ -127,7 +127,11 @@ class ProductSearchView(generics.GenericAPIView):
             })
 
         results.sort(key=lambda x: x["last_scraped"], reverse=True)
-        limit = 10 if len(q) >= 2 else 6
+        limit_param = request.query_params.get("limit")
+        try:
+            limit = int(limit_param) if limit_param else (10 if len(q) >= 2 else 6)
+        except ValueError:
+            limit = 10 if len(q) >= 2 else 6
         return Response(results[:limit])
 
 

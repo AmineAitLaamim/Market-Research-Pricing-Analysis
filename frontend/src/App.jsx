@@ -13,6 +13,7 @@ import ComparisonPage from './pages/ComparisonPage'
 import AlertsPage   from './pages/AlertsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ItemPage     from './pages/ItemPage'
+import DatabasePage from './pages/DatabasePage'
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/history"       element={<HistoryPage />} />
               <Route path="/alerts"        element={<AlertsPage />} />
               <Route path="/analytics"    element={<AnalyticsPage />} />
+              <Route path="/database"      element={<DatabasePage />} />
               <Route path="/item/:id"      element={<ItemPage />} />
             </Route>
 

@@ -1,8 +1,8 @@
 import api from './axios'
 
 export const analyticsApi = {
-  searchProducts(q) {
-    return api.get(`analytics/products/`, { params: { q } })
+  searchProducts(q, limit = 50) {
+    return api.get(`analytics/products/`, { params: { q, limit } })
   },
 
   getRecentProducts() {
