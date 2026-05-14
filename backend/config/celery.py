@@ -4,6 +4,10 @@ from celery import Celery
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
+# Allow synchronous Django ORM calls inside Celery (prevents async context errors
+# when libraries like Playwright start their own event loops in the thread).
+os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
+
 app = Celery('market_research')
 
 # Using a string here means the worker doesn't have to serialize

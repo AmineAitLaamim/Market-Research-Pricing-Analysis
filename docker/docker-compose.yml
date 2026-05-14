@@ -67,7 +67,8 @@ services:
     # This lets Chromium run in headed mode (SCRAPER_HEADLESS=false) inside
     # Docker — headed browsers expose far fewer bot-detection signals.
     command: >-
-      sh -c "Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
+      sh -c "rm -f /tmp/.X99-lock &&
+             Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
              sleep 1 &&
              celery -A config worker -l info"
     shm_size: '256mb'

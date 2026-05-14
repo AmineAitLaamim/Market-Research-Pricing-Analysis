@@ -4,7 +4,7 @@ import os
 import random
 
 from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
-from playwright_stealth import stealth_sync
+from playwright_stealth.stealth import Stealth
 
 from .utils import clean_price, get_random_ua
 
@@ -86,7 +86,7 @@ def apply_stealth(page: Page) -> None:
     navigator.webdriver, chrome runtime object, hairline feature,
     WebGL vendor/renderer, permission API, plugin array, etc.
     """
-    stealth_sync(page)
+    Stealth().apply_stealth_sync(page)
 
 
 def create_context(browser: Browser) -> BrowserContext:
