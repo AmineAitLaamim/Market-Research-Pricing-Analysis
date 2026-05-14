@@ -8,13 +8,20 @@ from urllib.parse import quote_plus, urljoin
 
 from parsel import Selector
 
-from .base import create_context
+from .base import apply_stealth, create_context
 from .utils import clean_price, random_delay
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.aliexpress.com"
 MAX_PAGES = 3
+_CAPTCHA_SELECTORS = [
+    "#baxia-punish",          # Akamai slider overlay
+    ".baxia-dialog",
+    "[class*='slider']",
+    "#nocaptcha",
+    "[id*='captcha']",
+]
 
 
 def _build_search_url(query: str, page: int = 1) -> str:
@@ -131,11 +138,46 @@ def extract_aliexpress_results(html: str, query: str | None = None) -> list[dict
     return results
 
 
+def _is_captcha_page(page) -> bool:
+    """Return True if the page is showing a CAPTCHA / bot-verification screen."""
+    for selector in _CAPTCHA_SELECTORS:
+        try:
+            if page.locator(selector).count() > 0:
+                return True
+        except Exception:
+            pass
+    # Also check for the slider keyword in HTML
+    html_snippet = page.content()[:4000].lower()
+    return "slide" in html_snippet and "verify" in html_snippet
+
+
+def _human_warmup(page) -> None:
+    """Perform random mouse movements and a slow scroll to mimic a human."""
+    import random as _rnd
+    try:
+        vp = page.viewport_size or {"width": 1280, "height": 720}
+        # Three random mouse moves
+        for _ in range(3):
+            x = _rnd.randint(200, vp["width"] - 200)
+            y = _rnd.randint(100, vp["height"] - 100)
+            page.mouse.move(x, y)
+            random_delay(0.2, 0.6)
+        # Slow scroll down
+        page.evaluate("window.scrollBy({top: 400, behavior: 'smooth'})")
+        random_delay(0.5, 1.2)
+        page.evaluate("window.scrollBy({top: -200, behavior: 'smooth'})")
+        random_delay(0.3, 0.7)
+    except Exception:
+        pass  # Non-fatal; best-effort
+
+
 def scrape_aliexpress(
     query_or_url: str, browser, progress_callback=None
 ) -> list[dict[str, Any]]:
     context = create_context(browser)
     page = context.new_page()
+    # Apply full stealth patching (navigator, WebGL, permissions, etc.)
+    apply_stealth(page)
     results: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
 
@@ -150,13 +192,24 @@ def scrape_aliexpress(
                 progress_callback("aliexpress", len(results))
 
             logger.info(f"Scraping AliExpress page {page_num}: {next_url}")
-            
-            # AliExpress might need a real user agent or specific headers
-            # but we'll start with default Playwright settings
-            page.goto(next_url, wait_until="networkidle", timeout=30000)
-            
-            # Wait a bit for any dynamic content/redirects
-            random_delay(1, 3)
+
+            page.goto(next_url, wait_until="networkidle", timeout=45000)
+
+            # Simulate human behaviour before reading content
+            _human_warmup(page)
+
+            # Detect CAPTCHA / slider verification screen
+            if _is_captcha_page(page):
+                logger.warning(
+                    "AliExpress CAPTCHA detected on page %d — "
+                    "set SCRAPER_HEADLESS=false or use a residential proxy "
+                    "to reduce detection rate.",
+                    page_num,
+                )
+                break
+
+            # Extra delay to let any lazy-loaded content settle
+            random_delay(2, 4)
 
             page_results = extract_aliexpress_results(page.content(), query=query_or_url)
             if not page_results:

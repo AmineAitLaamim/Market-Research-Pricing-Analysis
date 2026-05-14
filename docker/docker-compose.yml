@@ -63,7 +63,13 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    command: celery -A config worker -l info
+    # Start Xvfb (virtual display) first, then launch Celery.
+    # This lets Chromium run in headed mode (SCRAPER_HEADLESS=false) inside
+    # Docker — headed browsers expose far fewer bot-detection signals.
+    command: >-
+      sh -c "Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
+             sleep 1 &&
+             celery -A config worker -l info"
     shm_size: '256mb'
     volumes:
       - ../backend:/app
@@ -72,6 +78,10 @@ services:
       - DATABASE_URL=postgres://user:pass@db:5432/market_research
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
+      # Virtual display — Chromium renders here instead of crashing
+      - DISPLAY=:99
+      # Run Chromium in headed mode for better anti-bot stealth
+      - SCRAPER_HEADLESS=false
     depends_on:
       db:
         condition: service_healthy

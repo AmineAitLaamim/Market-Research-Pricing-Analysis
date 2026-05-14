@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import os
 import random
-from decimal import Decimal, InvalidOperation
 
-from playwright.sync_api import Browser, BrowserContext, Playwright, sync_playwright
+from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_playwright
+from playwright_stealth import stealth_sync
 
 from .utils import clean_price, get_random_ua
 
@@ -37,18 +38,9 @@ _SEC_CH_UA_MAP = {
     "Edg/123":    '"Chromium";v="123", "Microsoft Edge";v="123", "Not-A.Brand";v="99"',
 }
 
-_STEALTH_SCRIPT = """
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-    if (!window.chrome) { window.chrome = { runtime: {} }; }
-    const originalQuery = window.navigator.permissions.query;
-    window.navigator.permissions.query = (parameters) => (
-        parameters.name === 'notifications'
-            ? Promise.resolve({ state: 'default' })
-            : originalQuery(parameters)
-    );
-"""
+# SCRAPER_HEADLESS=false disables headless mode, which greatly reduces
+# detection. Useful during development or when CAPTCHAs are encountered.
+_HEADLESS = os.environ.get("SCRAPER_HEADLESS", "true").lower() != "false"
 
 
 def _get_sec_ch_ua(user_agent: str) -> str | None:
@@ -72,18 +64,29 @@ def get_browser() -> Browser:
     if _browser is None:
         _playwright = sync_playwright().start()
         _browser = _playwright.chromium.launch(
-            headless=True,
+            headless=_HEADLESS,
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--disable-dev-shm-usage",
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-infobars",
-                "--disable-extensions",
+                # Keep extensions disabled but don't pass --disable-extensions
+                # as some stealth patches rely on the extension API shape.
             ],
         )
 
     return _browser
+
+
+def apply_stealth(page: Page) -> None:
+    """Apply playwright-stealth to a single page.
+
+    playwright-stealth patches 30+ fingerprinting signals:
+    navigator.webdriver, chrome runtime object, hairline feature,
+    WebGL vendor/renderer, permission API, plugin array, etc.
+    """
+    stealth_sync(page)
 
 
 def create_context(browser: Browser) -> BrowserContext:
@@ -132,9 +135,6 @@ def create_context(browser: Browser) -> BrowserContext:
         color_scheme=random.choice(["light", "dark"]),
         java_script_enabled=True,
     )
-
-    # Patch JS fingerprinting signals before any page script runs
-    context.add_init_script(_STEALTH_SCRIPT)
 
     return context
 

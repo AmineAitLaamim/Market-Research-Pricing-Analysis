@@ -20,6 +20,7 @@ dependencies = [
     "numpy==1.26",
     "pandas==2.2",
     "playwright==1.56.0",
+    "playwright-stealth==1.0.6",
     "psycopg2-binary>=2.9.11",
     "redis==5.0",
     "scikit-learn==1.5",

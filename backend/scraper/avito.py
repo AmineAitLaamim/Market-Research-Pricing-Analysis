@@ -8,13 +8,22 @@ from urllib.parse import parse_qs, quote_plus, urljoin, urlparse
 
 from parsel import Selector
 
-from .base import create_context
+from .base import apply_stealth, create_context
 from .utils import clean_price, random_delay
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.avito.ma"
 MAX_PAGES = 3
+
+# Selectors that indicate Avito is showing a bot-check / access-denied page
+_BLOCK_SELECTORS = [
+    "#captcha",
+    "[class*='captcha']",
+    "[id*='captcha']",
+    ".robot-check",
+    "[class*='blocked']",
+]
 
 
 def _build_search_url(query: str, page: int = 1) -> str:
@@ -328,11 +337,44 @@ def _extract_next_page_url(current_url: str, page_num: int) -> str:
     return f"{base}?o={page_num + 1}"
 
 
+def _is_blocked_page(page) -> bool:
+    """Return True if Avito is showing a CAPTCHA or access-denied page."""
+    for selector in _BLOCK_SELECTORS:
+        try:
+            if page.locator(selector).count() > 0:
+                return True
+        except Exception:
+            pass
+    html_snippet = page.content()[:4000].lower()
+    # Common Avito block-page signals
+    return any(kw in html_snippet for kw in ("robot", "captcha", "access denied", "accès refusé"))
+
+
+def _human_warmup(page) -> None:
+    """Random mouse moves + smooth scroll to mimic a human visitor."""
+    import random as _rnd
+    try:
+        vp = page.viewport_size or {"width": 1280, "height": 720}
+        for _ in range(3):
+            x = _rnd.randint(200, vp["width"] - 200)
+            y = _rnd.randint(100, vp["height"] - 100)
+            page.mouse.move(x, y)
+            random_delay(0.2, 0.6)
+        page.evaluate("window.scrollBy({top: 500, behavior: 'smooth'})")
+        random_delay(0.5, 1.2)
+        page.evaluate("window.scrollBy({top: -200, behavior: 'smooth'})")
+        random_delay(0.3, 0.7)
+    except Exception:
+        pass  # Non-fatal; best-effort
+
+
 def scrape_avito(
     query_or_url: str, browser, progress_callback=None
 ) -> list[dict[str, Any]]:
     context = create_context(browser)
     page = context.new_page()
+    # Apply playwright-stealth: patches 30+ bot-detection fingerprinting signals
+    apply_stealth(page)
     results: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
 
@@ -362,9 +404,23 @@ def scrape_avito(
                 progress_callback("avito", len(results))
 
             logger.info(f"Scraping Avito page {page_num}: {next_url}")
-            page.goto(next_url, wait_until="networkidle", timeout=30000)
-            
-            random_delay(1, 3)
+            page.goto(next_url, wait_until="networkidle", timeout=45000)
+
+            # Simulate human behaviour before reading content
+            _human_warmup(page)
+
+            # Detect bot-block / CAPTCHA page
+            if _is_blocked_page(page):
+                logger.warning(
+                    "Avito bot-check detected on page %d — "
+                    "set SCRAPER_HEADLESS=false or use a residential proxy "
+                    "to reduce detection rate.",
+                    page_num,
+                )
+                break
+
+            # Extra settle delay for lazy-loaded Next.js content
+            random_delay(2, 4)
 
             page_results = extract_avito_results(page.content(), query=query)
             if not page_results:
