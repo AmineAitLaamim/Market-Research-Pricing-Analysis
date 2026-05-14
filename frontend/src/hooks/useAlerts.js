@@ -23,7 +23,8 @@ export function useAlerts() {
   useEffect(() => {
     fetch()
 
-    const url = `ws://${window.location.host}/ws/alerts/`
+    const token = localStorage.getItem('access_token')
+    const url = `ws://${window.location.host}/ws/alerts/${token ? `?token=${token}` : ''}`
     let ws
     let stopped = false
     let retries = 0

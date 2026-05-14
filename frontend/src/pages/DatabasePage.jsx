@@ -60,26 +60,36 @@ export default function DatabasePage() {
         </div>
 
         {/* Search Input */}
-        <div style={{ position: 'relative', marginBottom: '32px', maxWidth: '600px', margin: '0 auto 40px auto' }}>
-          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search your scraped products..."
-            style={{
-              width: '100%', height: '52px', paddingLeft: '46px', paddingRight: '16px',
-              borderRadius: '16px', border: '1px solid var(--border)',
-              fontSize: '15px', background: 'var(--surface)', color: 'var(--text-primary)',
-              outline: 'none', boxSizing: 'border-box',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-            }}
-          />
-          {searching && (
-            <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }}>
-              <span className="spinner" style={{ borderColor: 'var(--text-muted)', borderTopColor: 'transparent', width: '16px', height: '16px' }} />
-            </div>
-          )}
+        <div style={{ display: 'flex', gap: '12px', maxWidth: '600px', margin: '0 auto 40px auto' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && loadProducts(query)}
+              placeholder="Search your scraped products..."
+              style={{
+                width: '100%', height: '52px', paddingLeft: '46px', paddingRight: '16px',
+                borderRadius: '16px', border: '1px solid var(--border)',
+                fontSize: '15px', background: 'var(--surface)', color: 'var(--text-primary)',
+                outline: 'none', boxSizing: 'border-box',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+              }}
+            />
+            {searching && (
+              <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }}>
+                <span className="spinner" style={{ borderColor: 'var(--text-muted)', borderTopColor: 'transparent', width: '16px', height: '16px' }} />
+              </div>
+            )}
+          </div>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => loadProducts(query)}
+            style={{ height: '52px', padding: '0 24px', borderRadius: '16px', fontWeight: 600 }}
+          >
+            Search
+          </button>
         </div>
 
         {/* Results Grid */}
