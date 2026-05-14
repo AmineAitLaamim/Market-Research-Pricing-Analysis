@@ -88,6 +88,18 @@ If you have the dependencies installed:
 └── docker-compose.yml  # Root compose for easy access
 ```
 
+## 📚 Documentation
+
+For detailed information about the project, please refer to the following guides:
+
+- **[Project Architecture](./docs/architecture.md)**: High-level system design and component overview.
+- **[Frontend Architecture](./docs/frontend-architecture.md)**: React components, state management, and visualizations.
+- **[API Reference](./docs/api-reference.md)**: REST endpoints and WebSocket protocols.
+- **[Development Guide](./docs/development-guide.md)**: Setup instructions, running the app, and testing.
+- **[Data Mining Pipeline](./docs/mining-pipeline.md)**: Deep dive into the analysis engine.
+- **[Product Intelligence](./docs/product-intelligence.md)**: Details on the analytics and price tracking features.
+- **[Anti-Bot Research](./docs/avito-anti-bot.md)**: Strategies used to bypass platform protections.
+
 ## Features
 - **Real-time Scraping**: Dynamic (Playwright) and static (Scrapy) platform crawlers.
 - **Advanced Data Mining**:

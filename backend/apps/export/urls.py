@@ -1,3 +1,8 @@
 from django.urls import path
+from .views import ExportCSVView
 
-urlpatterns = []
+app_name = "export"
+
+urlpatterns = [
+    path('csv/<int:id>/', ExportCSVView.as_view(), name='export-csv'),
+]
