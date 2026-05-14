@@ -41,22 +41,47 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
     n = len(items)
     pca_results = compute_pca(X_combined, n)
 
-    # 3. Build AnalysisResult objects
-    # For now, we only populate PCA coordinates.
+    # 3. Compute Deal Scores and Stats
+    from mining.scoring import compute_deal_scores
+    from mining.stats import compute_price_stats
+    
+    # Placeholder for anomaly detection (currently assuming all are valid)
+    anomaly_flags = np.zeros(len(items), dtype=bool)
+
+    
+    deal_scores = compute_deal_scores(items, anomaly_flags)
+    stats_dict = compute_price_stats(items, anomaly_flags)
+
+    # 4. Build AnalysisResult objects
+    # For now, we only populate PCA coordinates and Deal Score.
     analysis_results = []
+    best_deal_id = None
+    highest_score = -1.0
+
     for i, item in enumerate(items):
+        ds = deal_scores[i]
+        
+        # Track the best deal
+        if ds is not None and ds > highest_score:
+            highest_score = ds
+            best_deal_id = item["id"]
+
         analysis_results.append(
             AnalysisResult(
                 raw_price_id=item["id"],
-                pca_x=float(pca_results[i, 0]),
-                pca_y=float(pca_results[i, 1]),
+                pca_x=float(pca_results[i, 0]) if pca_results.shape[1] > 0 else None,
+                pca_y=float(pca_results[i, 1]) if pca_results.shape[1] > 1 else None,
+                deal_score=ds,
+                is_anomaly=bool(anomaly_flags[i])
             )
         )
 
     return PipelineResult(
-        stats={},
-        best_deal_id=None,
+        stats=stats_dict,
+        best_deal_id=best_deal_id,
         analysis_results=analysis_results,
         association_rules=[],
         pca_points=pca_results.tolist(),
     )
+
+
