@@ -4,7 +4,6 @@ export const PLATFORMS = [
   { id: 'marjane',    name: 'Marjane',    icon: '🛍️' },
   { id: 'aliexpress', name: 'AliExpress', icon: '🌏' },
   { id: 'amazon',     name: 'Amazon',     icon: '📦' },
-  { id: 'ebay',       name: 'eBay',       icon: '🏷️' },
 ]
 
 export const STATUS_COLORS = {

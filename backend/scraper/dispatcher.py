@@ -5,6 +5,7 @@ from .base import close_browser, get_browser
 from .jumia import scrape_jumia
 from .avito import scrape_avito
 from .aliexpress import scrape_aliexpress
+from .amazon import scrape_amazon
 from .marjane import scrape_marjane
 from apps.ws.utils import notify_ws
 
@@ -15,6 +16,7 @@ SCRAPER_MAP = {
     "jumia": scrape_jumia,
     "avito": scrape_avito,
     "aliexpress": scrape_aliexpress,
+    "amazon": scrape_amazon,
     "marjane": scrape_marjane,
 }
 

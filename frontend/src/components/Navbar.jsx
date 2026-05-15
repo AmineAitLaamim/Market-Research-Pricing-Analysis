@@ -17,7 +17,7 @@ export default function Navbar() {
       {/* Brand */}
       <NavLink to="/search" className="navbar-brand">
         <span className="navbar-brand-dot" />
-        PriceScope
+        DealMiner
       </NavLink>
 
       {/* Nav links */}

@@ -79,7 +79,7 @@ export default function RegisterPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--brand)', display: 'inline-block' }} />
             <span style={{ fontFamily: "'Source Serif 4', serif", fontSize: '22px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              PriceScope
+              DealMiner
             </span>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Create your account</p>
