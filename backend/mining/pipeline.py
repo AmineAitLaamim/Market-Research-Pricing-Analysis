@@ -44,9 +44,11 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
     # 3. Compute Deal Scores and Stats
     from mining.scoring import compute_deal_scores
     from mining.stats import compute_price_stats
+    from mining.anomaly import isolation_forest_anomalies
     
-    # Placeholder for anomaly detection (currently assuming all are valid)
-    anomaly_flags = np.zeros(len(items), dtype=bool)
+    # Run global anomaly detection
+    prices_array = np.array([item['price_mad'] for item in items])
+    anomaly_flags = isolation_forest_anomalies(prices_array, n)
 
     
     deal_scores = compute_deal_scores(items, anomaly_flags)

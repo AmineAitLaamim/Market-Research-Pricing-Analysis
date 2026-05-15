@@ -30,11 +30,20 @@ To visualize hundreds of products in a 2D scatter plot, we use **Principal Compo
     4. Apply PCA to reduce features to exactly 2 components (`pca_x` and `pca_y`).
 - **Output:** Coordinates for each product, allowing the frontend's `ClusterScatter` component to render a 2D topographical map of the market.
 
-### 3. Clustering (`clustering.py`)
+### 3. Global Anomaly Detection (`anomaly.py`)
+- Uses the **Isolation Forest** algorithm from Scikit-Learn to detect outliers (e.g., highly mispriced or fake listings) across the entire scraped dataset.
+- **Adaptive Contamination:** The expected proportion of anomalies ("contamination") scales dynamically based on the dataset size (`n`).
+  - For small datasets (`n < 20`), it is highly sensitive (`1.0 / n`).
+  - For larger datasets, it scales smoothly: `min(0.05, max(0.02, 5.0 / n))`, ensuring the proportion remains between 2% and 5%.
+  - It handles edge cases by strictly capping contamination at `0.5` to adhere to the algorithm's constraints.
+- **Execution:** Runs consistently regardless of the dataset size (no arbitrary minimum `N` guards).
+- **Output:** A boolean mapping where `True` marks an anomaly. These items are subsequently excluded from "Best Deal" scoring and statistical aggregations to prevent skewing.
+
+### 4. Clustering (`clustering.py`)
 - Uses **K-Means** to group similar products together.
 - This helps users see "market segments" (e.g., high-end vs. budget variants of the same product).
 
-### 4. Scoring & Best Deal Detection (`scoring.py`)
+### 5. Scoring & Best Deal Detection (`scoring.py`)
 - Calculates a composite `deal_score` for non-anomalous items.
 - **Formula:** `0.7 * price_score + 0.3 * rating_score`
     - `price_score = (max_price - price) / price_range`. If `price_range == 0`, defaults to `0.5`.
@@ -42,12 +51,12 @@ To visualize hundreds of products in a 2D scatter plot, we use **Principal Compo
 - Items flagged as anomalous receive a `deal_score` of `None`.
 - The item with the highest non-null `deal_score` is flagged as the "Best Deal".
 
-### 5. Price Statistics (`stats.py`)
+### 6. Price Statistics (`stats.py`)
 - Computes comprehensive statistical metrics across all non-anomalous items.
 - Calculates: `count`, `mean`, `median`, `std`, `variance`, `min`, `max`, `q1` (25th percentile), `q3` (75th percentile), and `iqr`.
 - This data is directly used to render the frontend's Stats Cards grid.
 
-### 6. Pipeline Result Output
+### 7. Pipeline Result Output
 The final step of the pipeline constructs a structured `PipelineResult` object containing:
 - `stats`: The statistical dictionary.
 - `best_deal_id`: The database ID of the best product found.
