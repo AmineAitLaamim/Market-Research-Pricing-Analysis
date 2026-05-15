@@ -35,7 +35,7 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
   const [ruleSupport,   setRuleSupport]   = useState(3)
   const [loadingData,   setLoadingData]   = useState(false)
   const [loadingRules,  setLoadingRules]  = useState(false)
-  const [filters, setFilters] = useState({ platform: '', sort: 'default', anomaly_only: false, page: 1 })
+  const [filters, setFilters] = useState({ platform: '', sort: 'default', anomaly: 'all', page: 1 })
   const [tableResults,  setTableResults]  = useState([])
   const [tableTotal,    setTableTotal]    = useState(0)
   const [loadingTable,  setLoadingTable]  = useState(false)
@@ -88,7 +88,7 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
       const params = {
         page:       filters.page,
         platform:   filters.platform || undefined,
-        is_anomaly: filters.anomaly_only ? true : undefined,
+        is_anomaly: filters.anomaly !== 'all' ? filters.anomaly : undefined,
         ordering:   filters.sort === 'price_asc'  ? 'price'
                   : filters.sort === 'price_desc' ? '-price'
                   : filters.sort === 'deal_desc'  ? '-analysis__deal_score'

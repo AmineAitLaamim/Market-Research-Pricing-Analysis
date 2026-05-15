@@ -39,24 +39,25 @@ export default function FilterBar({ filters, onChange }) {
       </div>
 
       {/* Anomaly */}
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-        <input
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Anomalies</label>
+        <select
           id="filter-anomaly"
-          type="checkbox"
-          checked={!!filters.anomaly_only}
-          onChange={(e) => update('anomaly_only', e.target.checked)}
-          style={{ accentColor: 'var(--brand-from)', width: '16px', height: '16px' }}
-        />
-        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          ⚠️ Show anomalies only
-        </span>
-      </label>
+          className="filter-select"
+          value={filters.anomaly || 'all'}
+          onChange={(e) => update('anomaly', e.target.value)}
+        >
+          <option value="all">Show All</option>
+          <option value="false">Hide Anomalies</option>
+          <option value="true">Show only anomalies</option>
+        </select>
+      </div>
 
       {/* Reset */}
-      {(filters.platform || filters.sort !== 'default' || filters.anomaly_only) && (
+      {(filters.platform || filters.sort !== 'default' || filters.anomaly !== 'all') && (
         <button
           className="btn btn-ghost btn-sm"
-          onClick={() => onChange({ platform: '', sort: 'default', anomaly_only: false, page: 1 })}
+          onClick={() => onChange({ platform: '', sort: 'default', anomaly: 'all', page: 1 })}
           style={{ marginLeft: 'auto' }}
         >
           ✕ Reset filters

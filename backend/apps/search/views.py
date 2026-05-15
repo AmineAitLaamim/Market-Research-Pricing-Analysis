@@ -106,6 +106,8 @@ class SearchResultsView(generics.ListAPIView):
             qs = qs.filter(platform=platform)
         if is_anomaly == "true":
             qs = qs.filter(analysis_results__is_anomaly=True)
+        elif is_anomaly == "false":
+            qs = qs.filter(analysis_results__is_anomaly=False)
             
         if ordering == "-analysis__deal_score":
             qs = qs.annotate(deal_score=F("analysis_results__deal_score")).order_by("-deal_score", "price")
