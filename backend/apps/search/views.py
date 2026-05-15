@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -154,11 +155,64 @@ class SearchPCAView(APIView):
         return Response(results)
 
 class SearchRulesView(generics.ListAPIView):
-    serializer_class = AssociationRuleSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-    def get_queryset(self):
-        return AssociationRule.objects.filter(search_id=self.kwargs["pk"], search__user=self.request.user)
+    def get(self, request, pk):
+        search = get_object_or_404(Search, pk=pk, user=request.user)
+
+        min_support_param = request.query_params.get("min_support")
+        min_confidence_param = request.query_params.get("min_confidence")
+
+        if min_support_param is None and min_confidence_param is None:
+            queryset = AssociationRule.objects.filter(search=search)
+            serializer = AssociationRuleSerializer(queryset, many=True)
+            return Response(serializer.data)
+
+        try:
+            min_support = float(min_support_param) if min_support_param is not None else 0.03
+            min_confidence = float(min_confidence_param) if min_confidence_param is not None else 0.5
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "min_support and min_confidence must be numbers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not 0 < min_support <= 1:
+            return Response(
+                {"detail": "min_support must be between 0 and 1."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not 0 < min_confidence <= 1:
+            return Response(
+                {"detail": "min_confidence must be between 0 and 1."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from mining.association import mine_association_rules
+        from mining.preprocess import preprocess
+
+        raw_prices = list(RawPrice.objects.filter(search=search))
+        if not raw_prices:
+            return Response([])
+
+        _, X_encoded, _ = preprocess(raw_prices)
+        mined_rules = mine_association_rules(
+            X_encoded,
+            min_support=min_support,
+            min_confidence=min_confidence,
+        )
+
+        payload = [
+            {
+                "antecedent": rule["antecedents"],
+                "consequent": rule["consequents"],
+                "support": rule["support"],
+                "confidence": rule["confidence"],
+                "lift": rule["lift"],
+            }
+            for rule in mined_rules
+        ]
+        return Response(payload)
 
 class RawPriceDetailView(generics.RetrieveAPIView):
     serializer_class = RawPriceSerializer

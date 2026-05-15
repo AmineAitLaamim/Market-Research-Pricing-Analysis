@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, TYPE_CHECKING
 import numpy as np
 
+from mining.association import mine_association_rules
 from mining.preprocess import preprocess
 from mining.pca import compute_pca
 
@@ -23,7 +24,7 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
     Run the full mining pipeline on scraped prices.
     Includes preprocessing, PCA for visualization, and placeholder for other mining tasks.
     """
-    from apps.search.models import AnalysisResult
+    from apps.search.models import AnalysisResult, AssociationRule
 
     if not raw_prices:
         return PipelineResult({}, None, [], [], [])
@@ -56,10 +57,16 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
     
     deal_scores = compute_deal_scores(items, anomaly_flags)
     stats_dict = compute_price_stats(items, anomaly_flags)
+    mined_rules = mine_association_rules(
+        X_encoded,
+        min_support=0.03,
+        min_confidence=0.5,
+    )
 
     # 4. Build AnalysisResult objects
     # For now, we only populate PCA coordinates, Deal Score, Anomaly Flags, and DBSCAN labels.
     analysis_results = []
+    association_rule_objects = []
     best_deal_id = None
     highest_score = -1.0
 
@@ -82,11 +89,25 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
             )
         )
 
+    if raw_prices:
+        search = raw_prices[0].search
+        association_rule_objects = [
+            AssociationRule(
+                search=search,
+                antecedent=rule["antecedents"],
+                consequent=rule["consequents"],
+                support=rule["support"],
+                confidence=rule["confidence"],
+                lift=rule["lift"],
+            )
+            for rule in mined_rules
+        ]
+
     return PipelineResult(
         stats=stats_dict,
         best_deal_id=best_deal_id,
         analysis_results=analysis_results,
-        association_rules=[],
+        association_rules=association_rule_objects,
         pca_points=pca_results.tolist(),
     )
 

@@ -32,8 +32,8 @@ export const searchApi = {
   },
 
   /** Get association rules — GET /api/search/:id/rules/ */
-  getRules(id) {
-    return api.get(`search/${id}/rules/`)
+  getRules(id, params = {}) {
+    return api.get(`search/${id}/rules/`, { params })
   },
 
   /** Get a single item by its ID — GET /api/search/item/:itemId/ */

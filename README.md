@@ -3,7 +3,7 @@
 A full-stack platform for real-time product price comparison and data-mining-powered insights.
 
 ## Overview
-This platform searches products across multiple Moroccan and international e-commerce platforms (Avito, Jumia, Amazon, eBay), compares prices in real-time, and delivers insights using advanced data mining techniques.
+This platform searches products across multiple Moroccan and international e-commerce platforms (Avito, Jumia, Marjane, Amazon, eBay), compares prices in real-time, and delivers insights using advanced data mining techniques.
 
 ## Technology Stack
 - **Frontend**: React.js (Vite) + Chart.js + D3.js
@@ -97,11 +97,13 @@ For detailed information about the project, please refer to the following guides
 - **[API Reference](./docs/api-reference.md)**: REST endpoints and WebSocket protocols.
 - **[Development Guide](./docs/development-guide.md)**: Setup instructions, running the app, and testing.
 - **[Data Mining Pipeline](./docs/mining-pipeline.md)**: Deep dive into the analysis engine.
+- **[Association Rules](./docs/association-rules.md)**: Mining logic, API behavior, thresholds, and frontend controls for association-rule insights.
 - **[Product Intelligence](./docs/product-intelligence.md)**: Details on the analytics and price tracking features.
 - **[Anti-Bot Research](./docs/avito-anti-bot.md)**: Strategies used to bypass platform protections.
 
 ## Features
 - **Real-time Scraping**: Dynamic (Playwright) and static (Scrapy) platform crawlers.
+- **Multi-Platform Search**: Current first-party platform integrations include `avito`, `jumia`, and `marjane`.
 - **Advanced Data Mining**:
   - Price Segmentation (K-Means, DBSCAN)
   - Anomaly Detection (Isolation Forest, LOF)
@@ -109,4 +111,5 @@ For detailed information about the project, please refer to the following guides
   - Association Rule Mining (Apriori, FP-Growth)
 - **Live Updates**: Real-time progress tracking via WebSocket.
 - **Interactive Dashboard**: Visual price distributions, cluster maps, and deal scoring.
+- **Interactive Association Rules**: Users can change the minimum support threshold from the results page and reload rules on demand without rerunning the full scrape.
 

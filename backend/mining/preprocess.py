@@ -10,6 +10,34 @@ if TYPE_CHECKING:
     from apps.search.models import RawPrice
 
 
+def _price_bucket(price_mad: float) -> str:
+    if price_mad < 500:
+        return "budget"
+    if price_mad < 2000:
+        return "midrange"
+    if price_mad < 6000:
+        return "premium"
+    return "luxury"
+
+
+def _rating_bucket(seller_rating: float | None) -> str:
+    if seller_rating is None or np.isnan(seller_rating):
+        return "unknown"
+    if seller_rating < 3.5:
+        return "low"
+    if seller_rating < 4.2:
+        return "medium"
+    return "high"
+
+
+def _title_length_bucket(title_length: int) -> str:
+    if title_length < 25:
+        return "short"
+    if title_length < 60:
+        return "medium"
+    return "long"
+
+
 def build_preprocessing_pipeline() -> ColumnTransformer:
     """
     Builds the Scikit-Learn ColumnTransformer for numeric and categorical fields.
@@ -20,7 +48,13 @@ def build_preprocessing_pipeline() -> ColumnTransformer:
         ('scaler', StandardScaler())
     ])
     
-    categorical_features = ['platform', 'condition']
+    categorical_features = [
+        'platform',
+        'condition',
+        'price_bucket',
+        'rating_bucket',
+        'title_length_bucket',
+    ]
     categorical_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='constant', fill_value='unknown', keep_empty_features=True)),
         ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
@@ -72,13 +106,18 @@ def preprocess(raw_prices: List['RawPrice']) -> Tuple[np.ndarray, pd.DataFrame, 
             continue
             
         seen_urls.add(rp.url)
+        seller_rating = float(rp.seller_rating) if rp.seller_rating is not None else np.nan
+        title_length = len(rp.title) if rp.title else 0
         items.append({
             'id': rp.id,
             'price_mad': price_mad,
-            'seller_rating': float(rp.seller_rating) if rp.seller_rating is not None else np.nan,
-            'title_length': len(rp.title) if rp.title else 0,
+            'seller_rating': seller_rating,
+            'title_length': title_length,
             'platform': rp.platform,
-            'condition': rp.condition if rp.condition else np.nan
+            'condition': rp.condition if rp.condition else np.nan,
+            'price_bucket': _price_bucket(price_mad),
+            'rating_bucket': _rating_bucket(seller_rating),
+            'title_length_bucket': _title_length_bucket(title_length),
         })
 
     if not items:
@@ -99,10 +138,22 @@ def preprocess(raw_prices: List['RawPrice']) -> Tuple[np.ndarray, pd.DataFrame, 
     # Get feature names for the categorical part from the OneHotEncoder
     try:
         # sklearn > 1.0 supports get_feature_names_out on ColumnTransformer
-        cat_feature_names = pipeline.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(['platform', 'condition'])
+        cat_feature_names = pipeline.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out([
+            'platform',
+            'condition',
+            'price_bucket',
+            'rating_bucket',
+            'title_length_bucket',
+        ])
     except AttributeError:
         # Fallback for older sklearn
-        cat_feature_names = pipeline.named_transformers_['cat'].named_steps['onehot'].get_feature_names(['platform', 'condition'])
+        cat_feature_names = pipeline.named_transformers_['cat'].named_steps['onehot'].get_feature_names([
+            'platform',
+            'condition',
+            'price_bucket',
+            'rating_bucket',
+            'title_length_bucket',
+        ])
 
     # Slice the array
     num_cols_count = 3

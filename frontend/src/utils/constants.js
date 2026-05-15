@@ -1,6 +1,7 @@
 export const PLATFORMS = [
   { id: 'avito',      name: 'Avito.ma',   icon: '🇲🇦' },
   { id: 'jumia',      name: 'Jumia',      icon: '🛒' },
+  { id: 'marjane',    name: 'Marjane',    icon: '🛍️' },
   { id: 'aliexpress', name: 'AliExpress', icon: '🌏' },
   { id: 'amazon',     name: 'Amazon',     icon: '📦' },
   { id: 'ebay',       name: 'eBay',       icon: '🏷️' },

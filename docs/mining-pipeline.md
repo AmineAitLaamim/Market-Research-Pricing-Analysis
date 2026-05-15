@@ -18,7 +18,7 @@ The pipeline is orchestrated in `backend/mining/pipeline.py` via the `run_mining
 - **Cleaning:** Removes HTML tags (if any), trims whitespace, and normalizes text to lowercase.
 - **Numeric Extraction:** Extracts numerical values from price strings (e.g., "1.500 MAD" -> `1500.0`).
 - **Currency Normalization:** Converts prices from various sources (EUR, USD) to MAD using current exchange rates (via `exchange_rate.py`).
-- **Feature Engineering:** Creates derived features like `title_length`, `is_promotion`, or `platform_id`.
+- **Feature Engineering:** Creates derived features used by both scoring and association mining, including `title_length`, `price_bucket`, `rating_bucket`, and `title_length_bucket`.
 
 ### 2. Dimensionality Reduction (PCA) (`pca.py`)
 To visualize hundreds of products in a 2D scatter plot, we use **Principal Component Analysis (PCA)**.
@@ -60,11 +60,27 @@ To visualize hundreds of products in a 2D scatter plot, we use **Principal Compo
 - Calculates: `count`, `mean`, `median`, `std`, `variance`, `min`, `max`, `q1` (25th percentile), `q3` (75th percentile), and `iqr`.
 - This data is directly used to render the frontend's Stats Cards grid.
 
-### 7. Pipeline Result Output
+### 7. Association Rule Mining (`association.py`)
+- Uses `mlxtend` to mine item associations from the one-hot encoded categorical dataset returned by `preprocess.py`.
+- **Guard:** The miner returns `[]` when `len(X_encoded) < 30`.
+- **Primary algorithm:** FP-Growth via `fpgrowth(X_encoded, min_support=..., use_colnames=True)`.
+- **Rule generation:** `association_rules(freq_items, metric="confidence", min_threshold=min_confidence)`.
+- **Verification:** Apriori is run with the same parameters and the FP-Growth vs Apriori frequent-itemset counts are compared in logs.
+- **Default pipeline thresholds:** The search pipeline persists rules using `min_support=0.03` and `min_confidence=0.5`.
+- **Dynamic thresholds:** The API can rerun association mining on demand for a saved search when the frontend passes a custom `min_support` or `min_confidence`.
+- **Output shape:** Each rule is normalized to:
+  - `antecedents`
+  - `consequents`
+  - `support`
+  - `confidence`
+  - `lift`
+
+### 8. Pipeline Result Output
 The final step of the pipeline constructs a structured `PipelineResult` object containing:
 - `stats`: The statistical dictionary.
 - `best_deal_id`: The database ID of the best product found.
 - `analysis_results`: A list of analysis objects mapping `pca_x`, `pca_y`, `deal_score`, and `is_anomaly` directly back to the `RawPrice` database records.
+- `association_rules`: A list of `AssociationRule` model objects ready to persist.
 - `pca_points`: The raw 2D array of coordinates.
 
 ---
@@ -90,8 +106,9 @@ def run_search_pipeline(query, user_id):
 
 ---
 
-## Key Symbols
+## Key Modules
 
-- `MiningPipeline`: The main class managing the stages.
-- `DataCleaner`: Handles regex-based cleaning of titles and prices.
-- `PCARunner`: Wrapper around scikit-learn's PCA.
+- `pipeline.py`: Orchestrates preprocessing, PCA, anomaly detection, clustering, scoring, stats, and association rules.
+- `preprocess.py`: Produces numeric matrices, encoded categorical features, and normalized item dictionaries.
+- `association.py`: Encapsulates FP-Growth, Apriori verification, and rule serialization.
+- `pca.py`: Wrapper around scikit-learn PCA for 2D visualization coordinates.

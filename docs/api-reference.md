@@ -100,6 +100,33 @@ Fetch 2D visualization coordinates for the cluster map.
 ]
 ```
 
+### `GET search/<id>/rules/`
+Fetch association rules for a completed search.
+
+By default, this endpoint returns the rules already persisted during the mining pipeline. It also supports on-demand re-mining when thresholds are provided.
+
+**Query Parameters:**
+- `min_support`: Optional float in `(0, 1]`. When present, the backend reruns association rule mining for this search with the provided support threshold.
+- `min_confidence`: Optional float in `(0, 1]`. Defaults to `0.5` for on-demand mining when omitted.
+
+**Behavior:**
+- If neither parameter is provided, the endpoint returns saved rules from the database.
+- If `min_support` or `min_confidence` is provided, the backend preprocesses the search's raw prices and reruns FP-Growth association mining on demand.
+- If the encoded dataset contains fewer than `30` rows, the response is an empty array.
+
+**Response (Array):**
+```json
+[
+  {
+    "antecedent": ["platform_jumia", "condition_new"],
+    "consequent": ["price_bucket_mid"],
+    "support": 0.084,
+    "confidence": 0.71,
+    "lift": 1.64
+  }
+]
+```
+
 ---
 
 ## History & Analytics
@@ -204,7 +231,7 @@ Get the historical price trend for a specific product.
 Represents a scraping job.
 - `id` (Integer): Unique identifier.
 - `query` (String): The search keyword.
-- `platforms` (Array of Strings): Platforms searched (e.g., `["avito", "jumia"]`).
+- `platforms` (Array of Strings): Platforms searched (e.g., `["avito", "jumia", "marjane"]`).
 - `status` (String): `pending`, `processing`, `completed`, or `failed`.
 - `created_at` (Datetime): When the search was initiated.
 
@@ -235,3 +262,11 @@ Represents a notification for a price drop.
 - `search_query` (String): The search that triggered this alert.
 - `is_read` (Boolean): Whether the user has acknowledged the alert.
 - `created_at` (Datetime): When the drop was detected.
+
+### `AssociationRule` Object
+Represents one mined rule shown in the results page.
+- `antecedent` (Array of Strings): Left-hand side itemset.
+- `consequent` (Array of Strings): Right-hand side itemset.
+- `support` (Float): Fraction of rows containing the full rule itemset.
+- `confidence` (Float): Conditional probability of the consequent given the antecedent.
+- `lift` (Float): Strength of association relative to independence.

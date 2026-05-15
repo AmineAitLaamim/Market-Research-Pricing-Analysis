@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, TrendingDown, Search, Filter, CheckCheck, ExternalLink } from 'lucide-react'
 import { useAlerts } from '../hooks/useAlerts'
+import { PLATFORMS } from '../utils/constants'
 
-const PLATFORMS = ['avito', 'jumia']
+const PLATFORM_IDS = PLATFORMS.map((platform) => platform.id)
 
 export default function AlertsPage() {
   const navigate = useNavigate()
@@ -112,7 +113,14 @@ export default function AlertsPage() {
           style={{ height: '34px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: '13px', padding: '0 10px' }}
         >
           <option value="all">All platforms</option>
-          {PLATFORMS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+          {PLATFORM_IDS.map((platformId) => {
+            const platform = PLATFORMS.find((item) => item.id === platformId)
+            return (
+              <option key={platformId} value={platformId}>
+                {platform?.name || platformId}
+              </option>
+            )
+          })}
         </select>
 
         {/* Status */}

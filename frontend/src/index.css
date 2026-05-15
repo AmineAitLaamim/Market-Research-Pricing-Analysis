@@ -43,6 +43,7 @@
   --platform-amazon: #C96442;
   --platform-ebay:   #1D6FA4;
   --platform-avito:  #2E7D52;
+  --platform-marjane:#0D5DAA;
 
   /* Status */
   --status-pending:    #B45309;
@@ -275,6 +276,7 @@ h1, h2, h3, .serif { font-family: 'Source Serif 4', Georgia, serif; }
 .badge-amazon   { background: rgba(201,100,66,0.10); color: var(--platform-amazon); border: 1px solid rgba(201,100,66,0.25); }
 .badge-ebay     { background: rgba(29,111,164,0.10); color: var(--platform-ebay);   border: 1px solid rgba(29,111,164,0.25); }
 .badge-avito    { background: rgba(46,125,82,0.10);  color: var(--platform-avito);  border: 1px solid rgba(46,125,82,0.25); }
+.badge-marjane  { background: rgba(13,93,170,0.10);  color: var(--platform-marjane); border: 1px solid rgba(13,93,170,0.25); }
 
 /* ---------- Loading Skeleton ---------- */
 .skeleton {

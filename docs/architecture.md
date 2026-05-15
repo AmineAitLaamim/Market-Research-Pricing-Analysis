@@ -53,7 +53,7 @@ The system is designed as a distributed, asynchronous platform that combines rea
 
 ### 3. Scraping Engine (`/backend/scraper`)
 - **Technology:** Playwright (Python) with `playwright-stealth`.
-- **Dispatcher:** `dispatcher.py` orchestrates multi-platform scrapes (Avito, Jumia, etc.).
+- **Dispatcher:** `dispatcher.py` orchestrates multi-platform scrapes (`avito`, `jumia`, `marjane`, etc.).
 - **Spiders:** Platform-specific logic for parsing HTML and handling infinite scroll or pagination.
 - **Resilience:** Implements user-agent rotation and headless browser management.
 
@@ -65,6 +65,7 @@ The system is designed as a distributed, asynchronous platform that combines rea
     3. **Clustering:** K-Means clustering (available in pipeline).
     4. **Dimensionality Reduction:** PCA (Principal Component Analysis) to project high-dimensional product data into 2D coordinates for the `ClusterScatter` component.
     5. **Anomaly Detection:** Identifying price outliers.
+    6. **Association Rules:** FP-Growth mining with Apriori verification for categorical product attributes.
 
 ---
 
@@ -76,13 +77,14 @@ The most critical workflow in the system is the **Search Pipeline**, which is fu
 2. **Task Creation:** Frontend calls `POST /api/search/`. Backend creates a unique `task_id` and triggers a Celery task.
 3. **Scraping Phase:**
     - Celery worker launches Playwright.
-    - Scrapes Avito and Jumia in parallel.
+    - Scrapes the selected platforms, including Avito, Jumia, and Marjane.
     - Normalizes raw HTML into structured JSON objects.
 4. **Mining Phase:**
     - Scraped data is passed to `run_mining_pipeline`.
     - Data is cleaned and feature-engineered.
     - PCA is run to calculate visualization coordinates.
     - "Best Deal" scores are calculated.
+    - Association rules are mined and persisted with the completed search.
 5. **Persistence:** Results are saved to the PostgreSQL database, linked to the user.
 6. **Real-time Updates:** Throughout steps 3-5, the worker sends progress updates (e.g., "Scraping Avito... 50%") to Redis. Django Channels picks these up and pushes them to the frontend WebSocket.
 7. **Completion:** Frontend receives a `SUCCESS` status and fetches the final results from the API.
@@ -111,7 +113,7 @@ To minimize unnecessary external requests and bypass slow scraping delays, the p
 | **Database** | PostgreSQL |
 | **Task Queue** | Celery + Redis |
 | **Scraping** | Playwright, BeautifulSoup4 |
-| **Data Science** | Scikit-learn, Pandas, NumPy |
+| **Data Science** | Scikit-learn, mlxtend, Pandas, NumPy |
 | **DevOps** | Docker, Docker Compose, Makefile |
 
 ---

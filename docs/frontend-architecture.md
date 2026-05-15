@@ -58,6 +58,7 @@ The frontend makes heavy use of visualization libraries to display mining result
 - **`ClusterScatter.jsx` (D3.js):** Renders the 2D PCA results, allowing users to see product clusters and outliers.
 - **`PriceHistogram.jsx` (Chart.js):** Shows the distribution of prices for the current search.
 - **`BoxPlot.jsx` (Chart.js):** Visualizes price quartiles and statistical spread.
+- **`AssociationRules.jsx`:** Displays mined association rules in a scrollable table with sortable columns and an adjustable minimum-support control.
 - **`Analytics/PriceChart.jsx` (Recharts):** Displays historical price trends for tracked products.
 
 ---
@@ -67,7 +68,7 @@ The frontend makes heavy use of visualization libraries to display mining result
 | Page | Description |
 | :--- | :--- |
 | **SearchPage** | The entry point where users submit new search queries. |
-| **ResultsPage** | Displays the real-time progress, data tables, and mining visualizations for a specific search. |
+| **ResultsPage** | Displays the real-time progress, data tables, PCA visualization, and association rules for a specific search. |
 | **AnalyticsPage** | "Product Intelligence" hub for tracking prices over time and receiving "Buy/Wait" recommendations. |
 | **HistoryPage** | List of all previous searches conducted by the user. |
 | **AlertsPage** | Management interface for price drop notifications and target price thresholds. |
@@ -77,7 +78,7 @@ The frontend makes heavy use of visualization libraries to display mining result
 ## API Services (`src/api/`)
 
 The API layer is modularized by domain:
-- `search.js`: Creating searches, fetching results, and handling filters.
+- `search.js`: Creating searches, fetching results, handling filters, and reloading association rules with custom support thresholds.
 - `analytics.js`: Fetching product history, similar products, and setting thresholds.
 - `auth.js`: Login, registration, and logout.
 - `history.js`: Accessing archived search data.
@@ -90,3 +91,24 @@ The project uses **Vanilla CSS** with a focus on:
 - **Responsive Design:** Flexbox and Grid layouts.
 - **Theming:** CSS Variables defined in `index.css` for consistent colors and spacing.
 - **Modularity:** Components often have sibling CSS files (though currently centralized in `index.css`).
+
+---
+
+## Results Page Notes
+
+### Association Rules UI
+- The association rules panel is rendered below the PCA section at full width.
+- The rules table uses an internal scroll container so long rule lists do not expand the whole page vertically.
+- Users can change the minimum support threshold from the results page using:
+  - a slider
+  - a numeric input
+  - quick-pick buttons
+- The support control triggers a new `GET /api/search/<id>/rules/?min_support=...` request instead of requiring a full search rerun.
+- The table header remains sticky while scrolling inside the rules window.
+
+### Supported Platforms in the UI
+- Shared frontend platform constants include:
+  - `avito`
+  - `jumia`
+  - `marjane`
+- Alerts and search-related platform selectors should read from the shared constants instead of hardcoded arrays.

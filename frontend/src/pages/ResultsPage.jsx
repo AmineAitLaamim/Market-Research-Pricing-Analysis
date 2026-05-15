@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useDeferredValue, useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 
@@ -32,7 +32,9 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
   const [allResults,    setAllResults]    = useState([])
   const [pcaPoints,     setPcaPoints]     = useState([])
   const [rules,         setRules]         = useState([])
+  const [ruleSupport,   setRuleSupport]   = useState(3)
   const [loadingData,   setLoadingData]   = useState(false)
+  const [loadingRules,  setLoadingRules]  = useState(false)
   const [filters, setFilters] = useState({ platform: '', sort: 'default', anomaly_only: false, page: 1 })
   const [tableResults,  setTableResults]  = useState([])
   const [tableTotal,    setTableTotal]    = useState(0)
@@ -40,6 +42,7 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
 
   const disconnectRef = useRef(null)
   const pollRef       = useRef(null)
+  const deferredRuleSupport = useDeferredValue(ruleSupport)
 
   const fetchSearch = useCallback(async () => {
     try {
@@ -50,13 +53,25 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
     finally { setLoadingSearch(false) }
   }, [id])
 
+  const fetchRules = useCallback(async (supportPercent = ruleSupport) => {
+    setLoadingRules(true)
+    try {
+      const res = await searchApi.getRules(id, { min_support: supportPercent / 100 })
+      setRules(res.data ?? [])
+    } catch {
+      showToast('Failed to load association rules', 'error')
+      setRules([])
+    } finally {
+      setLoadingRules(false)
+    }
+  }, [id, ruleSupport, showToast])
+
   const fetchAnalysisData = useCallback(async () => {
     setLoadingData(true)
     try {
-      const [resAll, resPca, resRules] = await Promise.allSettled([
+      const [resAll, resPca] = await Promise.allSettled([
         searchApi.getResults(id, { page: 1, page_size: 1000 }),
         searchApi.getPCA(id),
-        searchApi.getRules(id),
       ])
       if (resAll.status === 'fulfilled') {
         const data = resAll.value.data
@@ -64,7 +79,6 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
         setAnalysisData({ stats: data.meta?.stats, best_deal: data.meta?.best_deal })
       }
       if (resPca.status   === 'fulfilled') setPcaPoints(resPca.value.data ?? [])
-      if (resRules.status === 'fulfilled') setRules(resRules.value.data ?? [])
     } finally { setLoadingData(false) }
   }, [id])
 
@@ -128,6 +142,10 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
   useEffect(() => {
     if (search?.status === 'completed') fetchTableResults()
   }, [filters, search?.status])
+
+  useEffect(() => {
+    if (search?.status === 'completed') fetchRules(deferredRuleSupport)
+  }, [search?.status, deferredRuleSupport, fetchRules])
 
   const isLive     = search?.status === 'pending' || search?.status === 'processing'
   const isComplete = search?.status === 'completed'
@@ -223,14 +241,20 @@ export default function ResultsPage({ searchId, isEmbedded = false }) {
 
           {/* PCA + Rules */}
           <section style={{ marginBottom: '32px' }}>
-            <div className="grid-2">
+            <div style={{ display: 'grid', gap: '24px' }}>
               <div className="card" style={{ padding: '24px' }}>
                 <h2 className="section-title">Cluster Visualization (PCA)</h2>
                 <ClusterScatter points={pcaPoints} />
               </div>
               <div className="card" style={{ padding: '24px' }}>
                 <h2 className="section-title">Association Rules</h2>
-                <AssociationRules rules={rules} />
+                <AssociationRules
+                  rules={rules}
+                  totalResults={allResults.length}
+                  loading={loadingRules}
+                  minSupport={ruleSupport}
+                  onSupportChange={setRuleSupport}
+                />
               </div>
             </div>
           </section>
