@@ -28,7 +28,7 @@ export const searchApi = {
 
   /** Get PCA points — GET /api/search/:id/pca/ */
   getPCA(id) {
-    return api.get(`search/${id}/pca/`)
+    return api.get(`search/${id}/pca/?_t=${Date.now()}`)
   },
 
   /** Get association rules — GET /api/search/:id/rules/ */

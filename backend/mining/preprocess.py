@@ -14,7 +14,7 @@ def build_preprocessing_pipeline() -> ColumnTransformer:
     """
     Builds the Scikit-Learn ColumnTransformer for numeric and categorical fields.
     """
-    numeric_features = ['price_mad', 'seller_rating']
+    numeric_features = ['price_mad', 'seller_rating', 'title_length']
     numeric_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='median', keep_empty_features=True)),
         ('scaler', StandardScaler())
@@ -22,7 +22,7 @@ def build_preprocessing_pipeline() -> ColumnTransformer:
     
     categorical_features = ['platform', 'condition']
     categorical_transformer = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='constant', fill_value='unknown')),
+        ('imputer', SimpleImputer(strategy='constant', fill_value='unknown', keep_empty_features=True)),
         ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
     ])
     
@@ -76,6 +76,7 @@ def preprocess(raw_prices: List['RawPrice']) -> Tuple[np.ndarray, pd.DataFrame, 
             'id': rp.id,
             'price_mad': price_mad,
             'seller_rating': float(rp.seller_rating) if rp.seller_rating is not None else np.nan,
+            'title_length': len(rp.title) if rp.title else 0,
             'platform': rp.platform,
             'condition': rp.condition if rp.condition else np.nan
         })
@@ -104,7 +105,7 @@ def preprocess(raw_prices: List['RawPrice']) -> Tuple[np.ndarray, pd.DataFrame, 
         cat_feature_names = pipeline.named_transformers_['cat'].named_steps['onehot'].get_feature_names(['platform', 'condition'])
 
     # Slice the array
-    num_cols_count = 2
+    num_cols_count = 3
     X_scaled = transformed_data[:, :num_cols_count]
     X_encoded_arr = transformed_data[:, num_cols_count:]
     

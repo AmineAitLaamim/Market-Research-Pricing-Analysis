@@ -73,12 +73,19 @@ export default function ClusterScatter({ points = [] }) {
       .style('font-family', 'Inter, sans-serif')
 
     points.forEach((d) => {
-      const cluster   = d.cluster_kmeans ?? null
-      const color     = cluster != null ? CLUSTER_COLORS[cluster % CLUSTER_COLORS.length] : '#9B978F'
-      const r         = rScale(d.deal_score ?? 0)
-      const cx        = xScale(d.pca_x)
-      const cy        = yScale(d.pca_y)
-      const isAnomaly = d.is_anomaly
+      // Aggressively check multiple keys just in case, and avoid ?? operator to prevent transpilation bugs
+      let cluster = null;
+      if (d.cluster !== undefined && d.cluster !== null) cluster = d.cluster;
+      else if (d.cluster_dbscan !== undefined && d.cluster_dbscan !== null) cluster = d.cluster_dbscan;
+      else if (d.cluster_id !== undefined && d.cluster_id !== null) cluster = d.cluster_id;
+
+      // For DBSCAN, -1 is noise
+      const isNoise   = cluster === -1;
+      const color     = (cluster !== null && !isNoise) ? CLUSTER_COLORS[cluster % CLUSTER_COLORS.length] : '#9B978F';
+      const r         = rScale(d.deal_score ?? 0);
+      const cx        = xScale(d.pca_x);
+      const cy        = yScale(d.pca_y);
+      const isAnomaly = d.is_anomaly;
 
       const shape = g.append('g')
         .attr('transform', `translate(${cx},${cy})`)
@@ -106,7 +113,7 @@ export default function ClusterScatter({ points = [] }) {
             Platform: ${d.platform ?? '—'}<br/>
             Price: ${d.price_mad != null ? Number(d.price_mad).toFixed(2) + ' MAD' : '—'}<br/>
             Deal score: ${d.deal_score != null ? (d.deal_score * 100).toFixed(1) + '%' : '—'}<br/>
-            Cluster: ${cluster ?? (isAnomaly ? '⚠ Anomaly' : '—')}
+            Cluster: ${isNoise ? 'Noise' : (cluster !== null && cluster !== undefined ? cluster : (isAnomaly ? '⚠ Anomaly' : '—'))}
           `)
         })
         .on('mousemove', (event) => {

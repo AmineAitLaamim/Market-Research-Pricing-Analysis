@@ -1,5 +1,6 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, permissions, status
+from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from .filters import SearchFilter
@@ -126,14 +127,14 @@ class SearchResultsView(generics.ListAPIView):
                 }
         return response
 
-class SearchPCAView(generics.ListAPIView):
+class SearchPCAView(APIView):
     permission_classes = (permissions.IsAuthenticated,)
     
     def get(self, request, pk):
         items = RawPrice.objects.filter(search_id=pk, search__user=request.user).prefetch_related("analysis_results")
         results = []
         for item in items:
-            an = item.analysis_results.first()
+            an = item.analysis_results.order_by("-id").first()
             if an and (an.pca_x is not None and an.pca_y is not None):
                 results.append({
                     "id": item.id,
@@ -146,6 +147,9 @@ class SearchPCAView(generics.ListAPIView):
                     "is_anomaly": an.is_anomaly,
                     "deal_score": an.deal_score,
                     "cluster_kmeans": an.cluster_kmeans,
+                    "cluster_dbscan": an.cluster_dbscan,
+                    "cluster_id": an.cluster_dbscan,  # Safety key
+                    "cluster": an.cluster_dbscan,     # Safety key
                 })
         return Response(results)
 

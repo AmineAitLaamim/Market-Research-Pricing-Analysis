@@ -15,6 +15,7 @@ class MockRawPrice:
     platform: str
     seller_rating: Optional[float] = None
     condition: Optional[str] = None
+    title: str = "Test Title"
 
 def test_pipeline_removes_duplicates_and_invalid_prices():
     """Ensure duplicate URLs are ignored (keep first), and zero/null prices dropped."""
