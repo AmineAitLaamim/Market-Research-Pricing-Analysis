@@ -89,6 +89,17 @@ The most critical workflow in the system is the **Search Pipeline**, which is fu
 
 ---
 
+## Detailed Data Flow: The Local Database Search
+
+To minimize unnecessary external requests and bypass slow scraping delays, the platform maintains a searchable local database of all historically scraped items.
+
+1. **User Initiation:** User navigates to the `DatabasePage` and types a query.
+2. **Debounced Request:** After 400ms of typing inactivity, the frontend queries `GET /api/analytics/products/?q={query}`.
+3. **Backend Aggregation:** The Django REST API uses SQL-level aggregations (`values().annotate(Count, Max, Avg)`) to group identical products across multiple past scrapes. It collapses duplicated entries into single distinct products containing metadata like `scrape_count` and `latest_price_mad`.
+4. **Result Rendering:** The frontend displays the grouped products in a grid, bypassing the need for live web scraping entirely.
+
+---
+
 ## Technical Stack
 
 | Category | Technology |

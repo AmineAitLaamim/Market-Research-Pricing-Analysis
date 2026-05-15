@@ -173,10 +173,6 @@ alertsApi.markAllRead()        // PATCH /api/search/alerts/read-all/
 
 Custom React hook. Mount it once in any component that needs alert data.
 
-```js
-const { alerts, unreadCount, markRead, markAllRead, loading, refresh } = useAlerts()
-```
-
 | Return value    | Type       | Description                                      |
 |----------------|------------|--------------------------------------------------|
 | `alerts`        | Array      | Full list of `PriceAlert` objects                |
@@ -186,7 +182,10 @@ const { alerts, unreadCount, markRead, markAllRead, loading, refresh } = useAler
 | `loading`       | Boolean    | `true` during initial fetch                      |
 | `refresh()`     | Function   | Manually re-fetches (e.g. after a new scrape)    |
 
-The hook sets up a `setInterval` polling every **30 seconds** and clears it on unmount via `useEffect` cleanup.
+**Real-time Synchronization:**
+The hook maintains a persistent WebSocket connection to `ws://<your-domain>/ws/alerts/`. Because native WebSockets do not support custom HTTP headers (such as `Authorization: Bearer <token>`), the JWT token is passed securely via the `?token=` query parameter. The backend's ASGI application is protected by a custom `TokenAuthMiddleware` which intercepts the connection request, extracts the query parameter, validates the JWT, and binds the authenticated user to the connection scope.
+
+If the connection is successfully authenticated, any price drops detected by the backend Celery workers are instantly pushed to the frontend, automatically triggering a `refresh()` to update the UI without needing 30-second polling.
 
 ---
 
@@ -253,8 +252,8 @@ frontend/src/
 ## Future Improvements
 
 - [x] ~~Move `check_price_drops()` into a dedicated Celery async task~~ — done. `check_price_drops` is now a `@shared_task` dispatched with `.delay(search.id)` immediately after the scrape completes. It runs in the Celery worker process, retries up to 2 times on failure with a 30-second delay.
-- [x] ~~Add a `/alerts` full page for browsing and filtering all historical alerts~~ — done. `AlertsPage.jsx` at `/alerts` with free-text search, platform filter, read/unread filter, and sort by newest / largest MAD drop / largest % drop.
+- [x] Add a `/alerts` full page for browsing and filtering all historical alerts.
 - [ ] Support email notifications for significant price drops (e.g. > 20%).
 - [ ] Allow users to set a minimum drop percentage threshold per keyword.
-- [x] ~~Add WebSocket push for instant bell updates instead of 30-second polling~~ — done. `AlertConsumer` at `ws/alerts/` pushes `{ type: "new_alerts", unread_count: N }` to all open tabs for the user the moment the Celery task detects drops. `useAlerts` connects to this socket and calls `refresh()` on receipt.
+- [x] Add WebSocket push for instant bell updates instead of 30-second polling. `AlertConsumer` at `ws/alerts/` pushes `{ type: "new_alerts", unread_count: N }` to all open tabs for the user the moment the Celery task detects drops. The ASGI `TokenAuthMiddleware` ensures these payloads are only pushed to securely authenticated clients.
 

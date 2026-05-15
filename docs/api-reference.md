@@ -132,9 +132,10 @@ Mark all unread alerts as read.
 
 ## WebSockets (Real-time)
 
+### Search Progress WebSocket
 **URL:** `ws://<your-domain>/ws/search/<task_id>/`
 
-The frontend should connect to this socket immediately after creating a search.
+The frontend should connect to this socket immediately after creating a search. Authentication is not strictly required for this specific socket as the `task_id` acts as a unique token.
 
 **Messages Received:**
 ```json
@@ -143,6 +144,23 @@ The frontend should connect to this socket immediately after creating a search.
   "status": "processing",
   "progress": 60,
   "message": "Analyzing data..."
+}
+```
+
+### Price Alerts WebSocket
+**URL:** `ws://<your-domain>/ws/alerts/?token=<jwt_token>`
+
+Provides real-time notifications when a background task detects a price drop.
+**Authentication:** This endpoint requires the user's JWT access token to be passed in the `token` query parameter, as native WebSocket APIs do not support setting custom `Authorization` headers. The backend ASGI middleware extracts this token to authenticate the connection.
+
+**Messages Received:**
+```json
+{
+  "type": "alert_message",
+  "data": {
+    "type": "new_alerts",
+    "unread_count": 3
+  }
 }
 ```
 
@@ -162,3 +180,58 @@ The frontend should connect to this socket immediately after creating a search.
 Download the results of search `<id>` as a CSV file.
 - Requires authentication.
 - Returns a `text/csv` attachment.
+
+---
+
+## Analytics API
+
+### `GET analytics/products/?q={query}&limit={limit}`
+Search the local database of previously scraped products.
+- `q`: Search keyword.
+- `limit`: Maximum number of results to return (default: 50).
+
+### `GET analytics/top-drops/`
+Get a list of the largest recent price drops across all user searches.
+
+### `GET analytics/product-history/?url={url}`
+Get the historical price trend for a specific product.
+
+---
+
+## Core Data Schemas
+
+### `Search` Object
+Represents a scraping job.
+- `id` (Integer): Unique identifier.
+- `query` (String): The search keyword.
+- `platforms` (Array of Strings): Platforms searched (e.g., `["avito", "jumia"]`).
+- `status` (String): `pending`, `processing`, `completed`, or `failed`.
+- `created_at` (Datetime): When the search was initiated.
+
+### `RawPrice` Object
+Represents a single product result from a scrape.
+- `id` (Integer): Unique identifier.
+- `platform` (String): Source platform.
+- `title` (String): Product title.
+- `price` (Decimal): Raw price on the platform.
+- `currency` (String): Original currency.
+- `exchange_rate` (Float): Rate used to convert to MAD.
+- `url` (String): Link to the product.
+- `image_url` (String, nullable): Product image.
+- `seller_rating` (Float, nullable): Rating out of 5.0.
+- `condition` (String, nullable): Item condition (`new`, `used`, etc.).
+- `scraped_at` (Datetime): Timestamp of data extraction.
+
+### `PriceAlert` Object
+Represents a notification for a price drop.
+- `id` (Integer): Unique identifier.
+- `product_title` (String): Title of the product.
+- `old_price` (Decimal): Previous price.
+- `new_price` (Decimal): New, lower price.
+- `drop_amount` (Decimal): Absolute difference.
+- `drop_percent` (Decimal): Percentage drop.
+- `platform` (String): Source platform.
+- `product_url` (String): Link to the product.
+- `search_query` (String): The search that triggered this alert.
+- `is_read` (Boolean): Whether the user has acknowledged the alert.
+- `created_at` (Datetime): When the drop was detected.

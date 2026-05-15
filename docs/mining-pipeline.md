@@ -22,11 +22,13 @@ The pipeline is orchestrated in `backend/mining/pipeline.py` via the `run_mining
 
 ### 2. Dimensionality Reduction (PCA) (`pca.py`)
 To visualize hundreds of products in a 2D scatter plot, we use **Principal Component Analysis (PCA)**.
-- **Input:** A matrix of product features (Price, Platform, Normalized Title TF-IDF).
+- **Input:** A matrix of product features combining scaled numeric features (Price, Rating) and one-hot encoded categorical features (Platform, Condition).
 - **Process:** 
-    1. Standardize features using `StandardScaler`.
-    2. Apply PCA to reduce features to 2 components.
-- **Output:** `x` and `y` coordinates for each product, which the frontend's `ClusterScatter` component renders.
+    1. Standardize features using Scikit-Learn's `StandardScaler` and `SimpleImputer`.
+    2. Encode categorical fields with `OneHotEncoder`.
+    3. Combine matrices into a single dataset.
+    4. Apply PCA to reduce features to exactly 2 components (`pca_x` and `pca_y`).
+- **Output:** Coordinates for each product, allowing the frontend's `ClusterScatter` component to render a 2D topographical map of the market.
 
 ### 3. Clustering (`clustering.py`)
 - Uses **K-Means** to group similar products together.
@@ -44,6 +46,13 @@ To visualize hundreds of products in a 2D scatter plot, we use **Principal Compo
 - Computes comprehensive statistical metrics across all non-anomalous items.
 - Calculates: `count`, `mean`, `median`, `std`, `variance`, `min`, `max`, `q1` (25th percentile), `q3` (75th percentile), and `iqr`.
 - This data is directly used to render the frontend's Stats Cards grid.
+
+### 6. Pipeline Result Output
+The final step of the pipeline constructs a structured `PipelineResult` object containing:
+- `stats`: The statistical dictionary.
+- `best_deal_id`: The database ID of the best product found.
+- `analysis_results`: A list of analysis objects mapping `pca_x`, `pca_y`, `deal_score`, and `is_anomaly` directly back to the `RawPrice` database records.
+- `pca_points`: The raw 2D array of coordinates.
 
 ---
 
