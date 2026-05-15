@@ -40,8 +40,12 @@ To visualize hundreds of products in a 2D scatter plot, we use **Principal Compo
 - **Output:** A boolean mapping where `True` marks an anomaly. These items are subsequently excluded from "Best Deal" scoring and statistical aggregations to prevent skewing.
 
 ### 4. Clustering (`clustering.py`)
-- Uses **K-Means** to group similar products together.
-- This helps users see "market segments" (e.g., high-end vs. budget variants of the same product).
+- Uses **Adaptive DBSCAN (Density-Based Spatial Clustering of Applications with Noise)** to group dense regions of products together.
+- **Dynamic Parameters:** 
+  - `min_samples` is dynamically scaled based on the dataset size: `max(3, int(0.05 * n))`.
+  - `eps` is auto-computed using a K-Distance graph by selecting the 90th percentile of distances to the K-th nearest neighbor.
+- **Execution:** Runs only for datasets with at least 10 items to prevent mathematically unsound clusters.
+- **Output:** Assigns a cluster ID to each item. Items that fall outside of dense regions are labeled as `-1` (noise) and saved as `cluster_dbscan` in the database.
 
 ### 5. Scoring & Best Deal Detection (`scoring.py`)
 - Calculates a composite `deal_score` for non-anomalous items.

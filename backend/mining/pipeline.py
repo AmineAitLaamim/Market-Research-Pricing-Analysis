@@ -45,17 +45,20 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
     from mining.scoring import compute_deal_scores
     from mining.stats import compute_price_stats
     from mining.anomaly import isolation_forest_anomalies
+    from mining.clustering import adaptive_dbscan
     
     # Run global anomaly detection
     prices_array = np.array([item['price_mad'] for item in items])
     anomaly_flags = isolation_forest_anomalies(prices_array, n)
 
+    # Run DBSCAN Clustering
+    dbscan_labels = adaptive_dbscan(X_combined, n)
     
     deal_scores = compute_deal_scores(items, anomaly_flags)
     stats_dict = compute_price_stats(items, anomaly_flags)
 
     # 4. Build AnalysisResult objects
-    # For now, we only populate PCA coordinates and Deal Score.
+    # For now, we only populate PCA coordinates, Deal Score, Anomaly Flags, and DBSCAN labels.
     analysis_results = []
     best_deal_id = None
     highest_score = -1.0
@@ -74,7 +77,8 @@ def run_mining_pipeline(raw_prices: List["RawPrice"]) -> PipelineResult:
                 pca_x=float(pca_results[i, 0]) if pca_results.shape[1] > 0 else None,
                 pca_y=float(pca_results[i, 1]) if pca_results.shape[1] > 1 else None,
                 deal_score=ds,
-                is_anomaly=bool(anomaly_flags[i])
+                is_anomaly=bool(anomaly_flags[i]),
+                cluster_dbscan=int(dbscan_labels[i]) if dbscan_labels is not None else None
             )
         )
 
